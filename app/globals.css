@@ -1,0 +1,118 @@
+/* 霞鹜文楷 - 通过 jsdelivr 引入，最美中文字体之一 */
+@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-kai: 'LXGW WenKai', 'KaiTi', 'STKaiti', serif;
+  color-scheme: light;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #F5EDE0;
+  color: #1F1B1A;
+  font-family: var(--font-song), 'Noto Serif SC', 'Songti SC', serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 文本竖排 */
+.vertical-rl {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+.vertical-mixed {
+  writing-mode: vertical-rl;
+}
+
+/* 宣纸纹理 */
+.paper-texture {
+  background-color: #F5EDE0;
+  background-image:
+    radial-gradient(rgba(176, 58, 72, 0.03) 1px, transparent 1px),
+    radial-gradient(rgba(31, 27, 26, 0.02) 1px, transparent 1px),
+    linear-gradient(180deg, #FBF6EC 0%, #F5EDE0 100%);
+  background-size: 24px 24px, 36px 36px, 100% 100%;
+  background-position: 0 0, 12px 18px, 0 0;
+}
+
+.paper-texture-warm {
+  background:
+    radial-gradient(ellipse at top, #FFF7EA 0%, #F5EDE0 60%, #EFE3D0 100%);
+}
+
+.night-texture {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(212, 166, 86, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(192, 72, 81, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #0F1B2A 0%, #080E18 100%);
+}
+
+/* 烫金字效果 */
+.gold-text {
+  background: linear-gradient(
+    100deg,
+    #C9A368 0%,
+    #F1E0B0 25%,
+    #C9A368 50%,
+    #8C6E3A 75%,
+    #C9A368 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
+/* 章节通用 */
+.chapter {
+  position: relative;
+  width: 100%;
+  min-height: 100svh;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* 隐藏滚动条但可滚动 */
+.scrollable::-webkit-scrollbar {
+  display: none;
+}
+.scrollable {
+  scrollbar-width: none;
+}
+
+/* 选中颜色 */
+::selection {
+  background: rgba(176, 58, 72, 0.25);
+  color: #1F1B1A;
+}
+
+/* 自定义工具 */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .drop-shadow-soft {
+    filter: drop-shadow(0 6px 24px rgba(31, 27, 26, 0.12));
+  }
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
+  }
+}
