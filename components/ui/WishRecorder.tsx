@@ -3,17 +3,39 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Phase = 'check' | 'record' | 'locked' | 'unlock' | 'play' | 'upload' | 'error';
+type Phase = 'check' | 'record' | 'upload' | 'play' | 'blocked' | 'historyUnlock' | 'history';
+
+type WishSummary = {
+  hasAnyWish: boolean;
+  hasWishThisYear: boolean;
+  year: number;
+  count: number;
+};
+
+type WishItem = {
+  id: string;
+  year: number;
+  createdAt: string;
+  audioUrl: string;
+};
 
 export default function WishRecorder({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>('check');
+  const [summary, setSummary] = useState<WishSummary | null>(null);
   const [password, setPassword] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
+  const [unlockPw, setUnlockPw] = useState('');
+  const [wishes, setWishes] = useState<WishItem[]>([]);
+  const [savedYear, setSavedYear] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
   const [levels, setLevels] = useState<number[]>(() => createIdleLevels());
+
+  const isFirstWish = !summary?.hasAnyWish;
+  const hasHistory = Boolean(summary?.hasAnyWish);
+  const currentYear = summary?.year ?? new Date().getFullYear();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -26,18 +48,22 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
   const rafRef = useRef<number | null>(null);
   const discardRecordingRef = useRef(false);
 
-  // 初始检查是否已有录音
+  // 初始检查：无愿望→录制；今年已许→拦截；有往年愿望但今年未许→录制(需既定密码)
   useEffect(() => {
     fetch('/api/wish')
       .then((r) => r.json())
-      .then((d) => {
-        if (d.hasWish) {
-          setPhase('locked');
+      .then((d: WishSummary) => {
+        setSummary(d);
+        if (d.hasWishThisYear) {
+          setPhase('blocked');
         } else {
           setPhase('record');
         }
       })
-      .catch(() => setPhase('record'));
+      .catch(() => {
+        setSummary({ hasAnyWish: false, hasWishThisYear: false, year: new Date().getFullYear(), count: 0 });
+        setPhase('record');
+      });
   }, []);
 
   const stopAudioAnalysis = useCallback((resetLevels = true) => {
@@ -235,6 +261,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
       const data = await res.json();
       if (data.ok) {
         setAudioUrl(data.audioUrl);
+        setSavedYear(typeof data.year === 'number' ? data.year : currentYear);
         setPhase('play');
       } else {
         setError(data.error || '上传失败');
@@ -248,23 +275,27 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const handleUnlock = async () => {
+  const handleUnlockHistory = async () => {
     setError('');
+    if (!unlockPw) {
+      setError('请输入密码');
+      return;
+    }
     try {
       const res = await fetch('/api/wish', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: unlockPw }),
       });
       const data = await res.json();
       if (data.ok) {
-        setAudioUrl(data.audioUrl);
-        setPhase('play');
+        setWishes(Array.isArray(data.wishes) ? data.wishes : []);
+        setPhase('history');
       } else {
         setError(data.error || '密码不正确');
       }
     } catch {
-      setError('验证失败');
+      setError('验证失败，请重试');
     }
   };
 
@@ -330,28 +361,30 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
             <span className="hairline-gold w-16" />
           </div>
 
-          {/* ===== 首次录音 ===== */}
+          {/* ===== 录制愿望（首次设密码 / 往年已有则用既定密码） ===== */}
           {phase === 'record' && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4">
-              {/* 密码设置 */}
+              {/* 密码设置 / 输入既定密码 */}
               {!isRecording && (
                 <div className="w-full flex flex-col gap-3">
                   <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
-                    录下你的生日愿望
+                    录下 {currentYear} 年的生日愿望
                     <br />
                     <span className="text-[#F3EBDD]/40 text-xs">
-                      设置密码后，想听需要输入密码
+                      {isFirstWish
+                        ? '设置密码后，想听需要输入密码'
+                        : '密码沿用第一次设置的那一个，不可修改'}
                     </span>
                   </p>
                   <input
                     type="password"
-                    placeholder="设置密码"
+                    placeholder={isFirstWish ? '设置密码' : '输入既定密码'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-[#D4A656]/20 text-[#F3EBDD] text-sm font-song text-center outline-none focus:border-[#D4A656]/50 transition-colors"
                     style={{ letterSpacing: '0.1em' }}
                   />
-                  {password && (
+                  {isFirstWish && password && (
                     <input
                       type="password"
                       placeholder="确认密码"
@@ -372,10 +405,10 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       if (!password) {
-                        setError('请先设置密码');
+                        setError(isFirstWish ? '请先设置密码' : '请输入既定密码');
                         return;
                       }
-                      if (confirmPw && confirmPw !== password) {
+                      if (isFirstWish && confirmPw && confirmPw !== password) {
                         setError('两次密码不一致');
                         return;
                       }
@@ -392,6 +425,19 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
                   >
                     <span className="w-5 h-5 rounded-full bg-[#F1E0B0]" />
                   </motion.button>
+
+                  {hasHistory && (
+                    <button
+                      onClick={() => {
+                        setError('');
+                        setUnlockPw('');
+                        setPhase('historyUnlock');
+                      }}
+                      className="font-song text-[#D4A656]/70 text-xs tracking-[0.15em] underline underline-offset-4 decoration-[#D4A656]/30"
+                    >
+                      查看往年愿望
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-3">
@@ -437,28 +483,57 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {/* ===== 已有录音（锁定） ===== */}
-          {phase === 'locked' && (
+          {/* ===== 今年已许愿（拦截） ===== */}
+          {phase === 'blocked' && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
-                这里封存着一个生日愿望
+                {currentYear} 年的愿望已经封存好啦
                 <br />
                 <span className="text-[#F3EBDD]/40 text-xs">
-                  输入密码即可聆听
+                  每年只留一个愿望，明年再来许下一个吧
                 </span>
+              </p>
+              {hasHistory && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setError('');
+                    setUnlockPw('');
+                    setPhase('historyUnlock');
+                  }}
+                  className="w-full py-2.5 rounded-lg font-kai text-sm tracking-[0.2em]"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(201,163,104,0.25) 0%, rgba(241,224,176,0.15) 100%)',
+                    border: '1px solid rgba(201,163,104,0.35)',
+                    color: '#F1E0B0',
+                  }}
+                >
+                  查看往年愿望
+                </motion.button>
+              )}
+            </div>
+          )}
+
+          {/* ===== 历史愿望：密码解锁 ===== */}
+          {phase === 'historyUnlock' && (
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
+              <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
+                这里封存着历年的生日愿望
+                <br />
+                <span className="text-[#F3EBDD]/40 text-xs">输入密码即可逐年聆听</span>
               </p>
               <input
                 type="password"
                 placeholder="输入密码"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
+                value={unlockPw}
+                onChange={(e) => setUnlockPw(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleUnlockHistory()}
                 className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-[#D4A656]/20 text-[#F3EBDD] text-sm font-song text-center outline-none focus:border-[#D4A656]/50 transition-colors"
                 style={{ letterSpacing: '0.1em' }}
               />
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={handleUnlock}
+                onClick={handleUnlockHistory}
                 className="w-full py-2.5 rounded-lg font-kai text-sm tracking-[0.2em]"
                 style={{
                   background: 'linear-gradient(135deg, rgba(201,163,104,0.25) 0%, rgba(241,224,176,0.15) 100%)',
@@ -468,14 +543,64 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
               >
                 解锁聆听
               </motion.button>
+              {phase === 'historyUnlock' && summary && !summary.hasWishThisYear && (
+                <button
+                  onClick={() => {
+                    setError('');
+                    setPhase('record');
+                  }}
+                  className="font-song text-[#F3EBDD]/40 text-xs tracking-[0.15em]"
+                >
+                  返回录制
+                </button>
+              )}
             </div>
           )}
 
-          {/* ===== 播放 ===== */}
+          {/* ===== 历史愿望：列表试听 ===== */}
+          {phase === 'history' && (
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
+              <p className="font-song text-[#F3EBDD]/70 text-sm text-center">
+                🎞 历年生日愿望
+              </p>
+              <div className="w-full flex flex-col gap-4 max-h-[46vh] overflow-y-auto pr-1">
+                {wishes.length === 0 && (
+                  <p className="font-song text-[#F3EBDD]/40 text-xs text-center">还没有愿望</p>
+                )}
+                {wishes.map((wish) => (
+                  <div
+                    key={wish.id}
+                    className="w-full flex flex-col gap-2 rounded-xl p-3"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(201,163,104,0.18)',
+                    }}
+                  >
+                    <div className="flex items-baseline justify-between">
+                      <span className="font-kai text-[#F1E0B0] text-base tracking-[0.15em]">
+                        {wish.year} 年
+                      </span>
+                      <span className="font-en text-[#F3EBDD]/40 text-[10px] tracking-[0.15em]">
+                        {new Date(wish.createdAt).toLocaleDateString('zh-CN')}
+                      </span>
+                    </div>
+                    <audio
+                      src={wish.audioUrl}
+                      controls
+                      className="w-full"
+                      style={{ filter: 'sepia(0.1)' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ===== 刚录制完的试听 ===== */}
           {phase === 'play' && audioUrl && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               <p className="font-song text-[#F3EBDD]/70 text-sm text-center">
-                🎧 你的生日愿望
+                🎧 {savedYear ?? currentYear} 年的生日愿望
               </p>
               <audio
                 ref={audioRef}

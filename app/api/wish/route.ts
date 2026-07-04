@@ -4,7 +4,7 @@ import {
   createWish,
   deleteWish,
   getWishSummary,
-  revealWish,
+  listWishes,
 } from '@/lib/wish-store';
 
 function cleanPassword(value: unknown): string {
@@ -31,7 +31,7 @@ function errorResponse(error: unknown) {
   return NextResponse.json({ error: '服务暂时不可用' }, { status: 500 });
 }
 
-/** POST /api/wish — 上传录音 + 设置密码 */
+/** POST /api/wish — 上传录音（每年一条，首次许愿设置密码，之后需既定密码） */
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -69,7 +69,7 @@ export async function GET() {
   }
 }
 
-/** PUT /api/wish — 验证密码，返回音频 URL */
+/** PUT /api/wish — 验证密码，返回历年愿望列表 */
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
@@ -78,7 +78,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: '请输入密码' }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: true, ...(await revealWish(password)) });
+    return NextResponse.json({ ok: true, ...(await listWishes(password)) });
   } catch (error) {
     return errorResponse(error);
   }

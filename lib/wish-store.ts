@@ -10,12 +10,11 @@ const SUPABASE_WISH_BUCKET = process.env.SUPABASE_WISH_BUCKET ?? 'birthday-wishe
 
 type WishStorageMode = 'local' | 'supabase';
 
-type LocalWishMeta = {
+type LocalWishEntry = {
   passwordHash: string;
   audioName: string;
   createdAt: string;
   mimeType?: string;
-  storageMode?: WishStorageMode;
 };
 
 type SupabaseWishRow = {
@@ -29,14 +28,29 @@ type SupabaseWishRow = {
 };
 
 export type WishSummary = {
-  hasWish: boolean;
-  createdAt?: string;
+  hasAnyWish: boolean;
+  hasWishThisYear: boolean;
+  year: number;
+  count: number;
   storageMode: WishStorageMode;
 };
 
 export type WishReveal = {
   audioUrl: string;
   createdAt: string;
+  year: number;
+  storageMode: WishStorageMode;
+};
+
+export type WishListItem = {
+  id: string;
+  year: number;
+  createdAt: string;
+  audioUrl: string;
+};
+
+export type WishList = {
+  wishes: WishListItem[];
   storageMode: WishStorageMode;
 };
 
@@ -118,21 +132,36 @@ function inferExtension(originalFilename: string, mimeType: string): string {
   return 'webm';
 }
 
-async function readLocalMeta(): Promise<LocalWishMeta | null> {
+function wishYear(createdAt: string): number {
+  return new Date(createdAt).getFullYear();
+}
+
+async function readLocalEntries(): Promise<LocalWishEntry[]> {
   try {
     const raw = await fs.readFile(META_FILE, 'utf-8');
-    return JSON.parse(raw) as LocalWishMeta;
+    const parsed = JSON.parse(raw);
+
+    if (Array.isArray(parsed)) {
+      return parsed as LocalWishEntry[];
+    }
+
+    // 兼容旧版单条 meta.json 结构
+    if (parsed && typeof parsed === 'object' && typeof parsed.audioName === 'string') {
+      return [parsed as LocalWishEntry];
+    }
+
+    return [];
   } catch {
-    return null;
+    return [];
   }
 }
 
-async function writeLocalMeta(meta: LocalWishMeta) {
+async function writeLocalEntries(entries: LocalWishEntry[]) {
   await fs.mkdir(WISH_DIR, { recursive: true });
-  await fs.writeFile(META_FILE, JSON.stringify(meta, null, 2), 'utf-8');
+  await fs.writeFile(META_FILE, JSON.stringify(entries, null, 2), 'utf-8');
 }
 
-async function getSupabaseWishRow(): Promise<SupabaseWishRow | null> {
+async function getSupabaseWishRows(): Promise<SupabaseWishRow[]> {
   if (!supabaseAdmin) {
     throw new WishStoreError('MISCONFIGURED', 'Supabase 客户端未初始化');
   }
@@ -140,14 +169,24 @@ async function getSupabaseWishRow(): Promise<SupabaseWishRow | null> {
   const { data, error } = await supabaseAdmin
     .from(SUPABASE_WISH_TABLE)
     .select('id, password_hash, storage_path, original_filename, mime_type, file_size, created_at')
-    .order('created_at', { ascending: false })
-    .limit(1);
+    .order('created_at', { ascending: false });
 
   if (error) {
     throw new WishStoreError('UPLOAD_FAILED', `读取愿望记录失败: ${error.message}`);
   }
 
-  return (data?.[0] as SupabaseWishRow | undefined) ?? null;
+  return (data as SupabaseWishRow[] | null) ?? [];
+}
+
+// 密码只在第一次许愿时设置，之后所有年份复用同一份哈希。取最早那条作为“权威密码”。
+function canonicalHashFromRows(rows: SupabaseWishRow[]): string | null {
+  if (rows.length === 0) return null;
+  return rows[rows.length - 1].password_hash;
+}
+
+function canonicalHashFromEntries(entries: LocalWishEntry[]): string | null {
+  if (entries.length === 0) return null;
+  return entries[0].passwordHash;
 }
 
 async function createSupabaseSignedUrl(storagePath: string): Promise<string> {
@@ -168,35 +207,54 @@ async function createSupabaseSignedUrl(storagePath: string): Promise<string> {
 
 export async function getWishSummary(): Promise<WishSummary> {
   const storageMode = getWishStorageMode();
+  const year = new Date().getFullYear();
 
   if (storageMode === 'supabase') {
-    const wish = await getSupabaseWishRow();
+    const rows = await getSupabaseWishRows();
     return {
-      hasWish: Boolean(wish),
-      createdAt: wish?.created_at,
+      hasAnyWish: rows.length > 0,
+      hasWishThisYear: rows.some((row) => wishYear(row.created_at) === year),
+      year,
+      count: rows.length,
       storageMode,
     };
   }
 
-  const meta = await readLocalMeta();
+  const entries = await readLocalEntries();
   return {
-    hasWish: Boolean(meta),
-    createdAt: meta?.createdAt,
+    hasAnyWish: entries.length > 0,
+    hasWishThisYear: entries.some((entry) => wishYear(entry.createdAt) === year),
+    year,
+    count: entries.length,
     storageMode,
   };
 }
 
 export async function createWish(input: WishCreateInput): Promise<WishReveal> {
   const storageMode = getWishStorageMode();
+  const year = new Date().getFullYear();
 
   if (storageMode === 'supabase') {
     if (!supabaseAdmin) {
       throw new WishStoreError('MISCONFIGURED', 'Supabase 客户端未初始化');
     }
 
-    const existing = await getSupabaseWishRow();
-    if (existing) {
-      throw new WishStoreError('ALREADY_EXISTS', '已有录音，如需覆盖请先删除');
+    const rows = await getSupabaseWishRows();
+    const canonicalHash = canonicalHashFromRows(rows);
+
+    let passwordHash: string;
+    if (canonicalHash) {
+      // 已有愿望：必须用既定密码，且今年不能重复许愿
+      if (!verifyPassword(input.password, canonicalHash)) {
+        throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
+      }
+      if (rows.some((row) => wishYear(row.created_at) === year)) {
+        throw new WishStoreError('ALREADY_EXISTS', `${year} 年已经许过愿望啦`);
+      }
+      passwordHash = canonicalHash;
+    } else {
+      // 第一次许愿：设置密码
+      passwordHash = hashPassword(input.password);
     }
 
     const id = crypto.randomUUID();
@@ -214,7 +272,6 @@ export async function createWish(input: WishCreateInput): Promise<WishReveal> {
       throw new WishStoreError('UPLOAD_FAILED', `上传录音文件失败: ${uploadResult.error.message}`);
     }
 
-    const passwordHash = hashPassword(input.password);
     const { data, error } = await supabaseAdmin
       .from(SUPABASE_WISH_TABLE)
       .insert({
@@ -233,16 +290,29 @@ export async function createWish(input: WishCreateInput): Promise<WishReveal> {
       throw new WishStoreError('UPLOAD_FAILED', `写入愿望记录失败: ${error.message}`);
     }
 
+    const createdAt = data.created_at as string;
     return {
       audioUrl: await createSupabaseSignedUrl(storagePath),
-      createdAt: data.created_at as string,
+      createdAt,
+      year: wishYear(createdAt),
       storageMode,
     };
   }
 
-  const existing = await readLocalMeta();
-  if (existing) {
-    throw new WishStoreError('ALREADY_EXISTS', '已有录音，如需覆盖请先删除');
+  const entries = await readLocalEntries();
+  const canonicalHash = canonicalHashFromEntries(entries);
+
+  let passwordHash: string;
+  if (canonicalHash) {
+    if (!verifyPassword(input.password, canonicalHash)) {
+      throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
+    }
+    if (entries.some((entry) => wishYear(entry.createdAt) === year)) {
+      throw new WishStoreError('ALREADY_EXISTS', `${year} 年已经许过愿望啦`);
+    }
+    passwordHash = canonicalHash;
+  } else {
+    passwordHash = hashPassword(input.password);
   }
 
   const ext = inferExtension(input.originalFilename, input.mimeType);
@@ -252,55 +322,69 @@ export async function createWish(input: WishCreateInput): Promise<WishReveal> {
   await fs.writeFile(path.join(WISH_DIR, audioName), input.audioBuffer);
 
   const createdAt = new Date().toISOString();
-  await writeLocalMeta({
-    passwordHash: hashPassword(input.password),
+  entries.push({
+    passwordHash,
     audioName,
     createdAt,
     mimeType: input.mimeType,
-    storageMode,
   });
+  await writeLocalEntries(entries);
 
   return {
     audioUrl: `/wishes/${audioName}`,
     createdAt,
+    year: wishYear(createdAt),
     storageMode,
   };
 }
 
-export async function revealWish(password: string): Promise<WishReveal> {
+export async function listWishes(password: string): Promise<WishList> {
   const storageMode = getWishStorageMode();
 
   if (storageMode === 'supabase') {
-    const wish = await getSupabaseWishRow();
-    if (!wish) {
-      throw new WishStoreError('NOT_FOUND', '尚无录音');
+    const rows = await getSupabaseWishRows();
+    if (rows.length === 0) {
+      throw new WishStoreError('NOT_FOUND', '还没有任何愿望');
     }
 
-    if (!verifyPassword(password, wish.password_hash)) {
+    const canonicalHash = canonicalHashFromRows(rows);
+    if (!canonicalHash || !verifyPassword(password, canonicalHash)) {
       throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
     }
 
-    return {
-      audioUrl: await createSupabaseSignedUrl(wish.storage_path),
-      createdAt: wish.created_at,
-      storageMode,
-    };
+    const wishes = await Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        year: wishYear(row.created_at),
+        createdAt: row.created_at,
+        audioUrl: await createSupabaseSignedUrl(row.storage_path),
+      })),
+    );
+
+    wishes.sort((a, b) => b.year - a.year);
+    return { wishes, storageMode };
   }
 
-  const meta = await readLocalMeta();
-  if (!meta) {
-    throw new WishStoreError('NOT_FOUND', '尚无录音');
+  const entries = await readLocalEntries();
+  if (entries.length === 0) {
+    throw new WishStoreError('NOT_FOUND', '还没有任何愿望');
   }
 
-  if (!verifyPassword(password, meta.passwordHash)) {
+  const canonicalHash = canonicalHashFromEntries(entries);
+  if (!canonicalHash || !verifyPassword(password, canonicalHash)) {
     throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
   }
 
-  return {
-    audioUrl: `/wishes/${meta.audioName}`,
-    createdAt: meta.createdAt,
-    storageMode,
-  };
+  const wishes = entries
+    .map((entry) => ({
+      id: entry.audioName,
+      year: wishYear(entry.createdAt),
+      createdAt: entry.createdAt,
+      audioUrl: `/wishes/${entry.audioName}`,
+    }))
+    .sort((a, b) => b.year - a.year);
+
+  return { wishes, storageMode };
 }
 
 export async function deleteWish(password: string): Promise<void> {
@@ -311,24 +395,26 @@ export async function deleteWish(password: string): Promise<void> {
       throw new WishStoreError('MISCONFIGURED', 'Supabase 客户端未初始化');
     }
 
-    const wish = await getSupabaseWishRow();
-    if (!wish) {
-      throw new WishStoreError('NOT_FOUND', '尚无录音');
+    const rows = await getSupabaseWishRows();
+    if (rows.length === 0) {
+      throw new WishStoreError('NOT_FOUND', '还没有任何愿望');
     }
 
-    if (!verifyPassword(password, wish.password_hash)) {
+    const canonicalHash = canonicalHashFromRows(rows);
+    if (!canonicalHash || !verifyPassword(password, canonicalHash)) {
       throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
     }
 
+    const target = rows[0];
     const deleteStorageResult = await supabaseAdmin.storage
       .from(SUPABASE_WISH_BUCKET)
-      .remove([wish.storage_path]);
+      .remove([target.storage_path]);
 
     if (deleteStorageResult.error) {
       throw new WishStoreError('UPLOAD_FAILED', `删除录音文件失败: ${deleteStorageResult.error.message}`);
     }
 
-    const { error } = await supabaseAdmin.from(SUPABASE_WISH_TABLE).delete().eq('id', wish.id);
+    const { error } = await supabaseAdmin.from(SUPABASE_WISH_TABLE).delete().eq('id', target.id);
     if (error) {
       throw new WishStoreError('UPLOAD_FAILED', `删除愿望记录失败: ${error.message}`);
     }
@@ -336,15 +422,162 @@ export async function deleteWish(password: string): Promise<void> {
     return;
   }
 
-  const meta = await readLocalMeta();
-  if (!meta) {
-    throw new WishStoreError('NOT_FOUND', '尚无录音');
+  const entries = await readLocalEntries();
+  if (entries.length === 0) {
+    throw new WishStoreError('NOT_FOUND', '还没有任何愿望');
   }
 
-  if (!verifyPassword(password, meta.passwordHash)) {
+  const canonicalHash = canonicalHashFromEntries(entries);
+  if (!canonicalHash || !verifyPassword(password, canonicalHash)) {
     throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
   }
 
-  await fs.unlink(path.join(WISH_DIR, meta.audioName)).catch(() => {});
+  const target = entries[entries.length - 1];
+  await fs.unlink(path.join(WISH_DIR, target.audioName)).catch(() => {});
+
+  const remaining = entries.slice(0, -1);
+  if (remaining.length === 0) {
+    await fs.unlink(META_FILE).catch(() => {});
+  } else {
+    await writeLocalEntries(remaining);
+  }
+}
+
+// ===== 后台管理（凭 WISH_ADMIN_PASSWORD 鉴权，不需要愿望密码） =====
+
+function assertAdminPassword(password: string): void {
+  const adminPassword = process.env.WISH_ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    throw new WishStoreError('MISCONFIGURED', '未配置 WISH_ADMIN_PASSWORD');
+  }
+
+  const input = Buffer.from(password);
+  const expected = Buffer.from(adminPassword);
+
+  if (input.length !== expected.length || !crypto.timingSafeEqual(input, expected)) {
+    throw new WishStoreError('INVALID_PASSWORD', '管理密码不正确');
+  }
+}
+
+export async function adminListWishes(adminPassword: string): Promise<WishList> {
+  assertAdminPassword(adminPassword);
+  const storageMode = getWishStorageMode();
+
+  if (storageMode === 'supabase') {
+    const rows = await getSupabaseWishRows();
+    const wishes = await Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        year: wishYear(row.created_at),
+        createdAt: row.created_at,
+        audioUrl: await createSupabaseSignedUrl(row.storage_path),
+      })),
+    );
+
+    wishes.sort((a, b) => b.year - a.year);
+    return { wishes, storageMode };
+  }
+
+  const entries = await readLocalEntries();
+  const wishes = entries
+    .map((entry) => ({
+      id: entry.audioName,
+      year: wishYear(entry.createdAt),
+      createdAt: entry.createdAt,
+      audioUrl: `/wishes/${entry.audioName}`,
+    }))
+    .sort((a, b) => b.year - a.year);
+
+  return { wishes, storageMode };
+}
+
+export async function adminDeleteWish(adminPassword: string, id: string): Promise<void> {
+  assertAdminPassword(adminPassword);
+  const storageMode = getWishStorageMode();
+
+  if (storageMode === 'supabase') {
+    if (!supabaseAdmin) {
+      throw new WishStoreError('MISCONFIGURED', 'Supabase 客户端未初始化');
+    }
+
+    const rows = await getSupabaseWishRows();
+    const target = rows.find((row) => row.id === id);
+    if (!target) {
+      throw new WishStoreError('NOT_FOUND', '愿望不存在');
+    }
+
+    const deleteStorageResult = await supabaseAdmin.storage
+      .from(SUPABASE_WISH_BUCKET)
+      .remove([target.storage_path]);
+
+    if (deleteStorageResult.error) {
+      throw new WishStoreError('UPLOAD_FAILED', `删除录音文件失败: ${deleteStorageResult.error.message}`);
+    }
+
+    const { error } = await supabaseAdmin.from(SUPABASE_WISH_TABLE).delete().eq('id', target.id);
+    if (error) {
+      throw new WishStoreError('UPLOAD_FAILED', `删除愿望记录失败: ${error.message}`);
+    }
+
+    return;
+  }
+
+  const entries = await readLocalEntries();
+  const target = entries.find((entry) => entry.audioName === id);
+  if (!target) {
+    throw new WishStoreError('NOT_FOUND', '愿望不存在');
+  }
+
+  await fs.unlink(path.join(WISH_DIR, target.audioName)).catch(() => {});
+
+  const remaining = entries.filter((entry) => entry.audioName !== id);
+  if (remaining.length === 0) {
+    await fs.unlink(META_FILE).catch(() => {});
+  } else {
+    await writeLocalEntries(remaining);
+  }
+}
+
+export async function adminClearWishes(adminPassword: string): Promise<number> {
+  assertAdminPassword(adminPassword);
+  const storageMode = getWishStorageMode();
+
+  if (storageMode === 'supabase') {
+    if (!supabaseAdmin) {
+      throw new WishStoreError('MISCONFIGURED', 'Supabase 客户端未初始化');
+    }
+
+    const rows = await getSupabaseWishRows();
+    if (rows.length === 0) {
+      return 0;
+    }
+
+    const paths = rows.map((row) => row.storage_path);
+    const deleteStorageResult = await supabaseAdmin.storage
+      .from(SUPABASE_WISH_BUCKET)
+      .remove(paths);
+
+    if (deleteStorageResult.error) {
+      throw new WishStoreError('UPLOAD_FAILED', `清空录音文件失败: ${deleteStorageResult.error.message}`);
+    }
+
+    const { error } = await supabaseAdmin
+      .from(SUPABASE_WISH_TABLE)
+      .delete()
+      .in('id', rows.map((row) => row.id));
+
+    if (error) {
+      throw new WishStoreError('UPLOAD_FAILED', `清空愿望记录失败: ${error.message}`);
+    }
+
+    return rows.length;
+  }
+
+  const entries = await readLocalEntries();
+  await Promise.all(
+    entries.map((entry) => fs.unlink(path.join(WISH_DIR, entry.audioName)).catch(() => {})),
+  );
   await fs.unlink(META_FILE).catch(() => {});
+  return entries.length;
 }

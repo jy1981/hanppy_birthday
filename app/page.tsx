@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import EntryGate from '@/components/providers/EntryGate';
 import BgmToggle from '@/components/ui/BgmToggle';
 import SceneController from '@/components/ui/SceneController';
+import AdminPanel from '@/components/ui/AdminPanel';
 
 import Cover from '@/components/chapters/Cover';
 import Prelude from '@/components/chapters/Prelude';
@@ -16,6 +17,14 @@ import Finale from '@/components/chapters/Finale';
 
 export default function Page() {
   const [entered, setEntered] = useState(false);
+  const [admin, setAdmin] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('debug') === '1') {
+      setAdmin(true);
+    }
+  }, []);
 
   const scenes = useMemo(
     () => [
@@ -80,6 +89,7 @@ export default function Page() {
           <SceneController scenes={scenes} />
         </>
       )}
+      {admin && <AdminPanel onClose={() => setAdmin(false)} />}
     </>
   );
 }

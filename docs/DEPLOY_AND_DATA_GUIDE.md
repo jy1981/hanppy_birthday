@@ -261,18 +261,17 @@ Vercel 项目保护状态：
 npx --yes --registry=https://registry.npmjs.org vercel@latest project protection disable my-tongtong --sso
 ```
 
-当前仍存在的问题：
+当前状态（已解决）：
 
-- Vercel `inspect` 显示部署 `READY`。
-- 构建日志显示 Next.js 路由已生成：`/` 和 `/api/wish`。
-- 但公网访问 `https://my-tongtong.vercel.app` 仍返回：
+- 公网访问 `https://my-tongtong.vercel.app` 已恢复正常，首页与 `/api/wish` 均返回 `200`。
+- 生产环境已配置 6 个 Supabase 变量（见第五节），线上 `/api/wish` 返回 `storageMode: "supabase"`，录音、每年一愿拦截、历史列表、密码校验、删除全链路线上实测通过。
 
-```text
-HTTP/2 404
-x-vercel-error: NOT_FOUND
-```
+历史上曾出现过的 404（现已不再复现）：
 
-当前验证命令：
+- Vercel `inspect` 显示部署 `READY`、构建日志有 `/` 和 `/api/wish`，但公网访问一度返回 `HTTP/2 404 / x-vercel-error: NOT_FOUND`。
+- 通过重新执行 `vercel deploy --prod` 并配好生产环境变量后恢复正常。
+
+验证命令：
 
 ```bash
 curl -I -L https://my-tongtong.vercel.app
@@ -280,7 +279,7 @@ curl -sS https://my-tongtong.vercel.app/api/wish
 npx --yes --registry=https://registry.npmjs.org vercel@latest inspect https://my-tongtong.vercel.app --format=json
 ```
 
-如果继续排查，优先看：
+如果将来再次出现 404，优先看：
 
 - Vercel Dashboard 里 `my-tongtong -> Settings -> Domains` 是否显示 alias 正常绑定。
 - Vercel Dashboard 里 `my-tongtong -> Settings -> Deployment Protection` 是否还有团队级保护或项目级保护。
