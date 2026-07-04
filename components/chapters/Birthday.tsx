@@ -1,125 +1,139 @@
 'use client';
 
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
-import { copy, photos, videos } from '@/lib/manifest';
-import { PhotoSlot, VideoSlot } from '@/components/ui/MediaSlot';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { copy, photos } from '@/lib/manifest';
+import FilmScene from '@/components/ui/FilmScene';
+import FilmGrain from '@/components/ui/FilmGrain';
 import ChineseSeal from '@/components/ui/ChineseSeal';
-import InkBrushDivider from '@/components/ui/InkBrushDivider';
-import Reveal from '@/components/ui/Reveal';
+
+const LETTER_DELAY = 200;
 
 /**
- * 生日章：以一个超大的「彤」字为主视觉，环绕花卉与她的特写，
- * 然后是一封长信（章内可滚动）。
+ * Chapter V · 彤 — 长镜头 + 一封信（自动播放版）。
+ * 先播放 FilmScene 照片序列，然后自动切换到信件场景。
  */
-export default function Birthday() {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start end', 'end start'],
-  });
-  const tongScale = useTransform(scrollYProgress, [0, 0.4, 0.7], [0.7, 1, 1.05]);
-  const tongOpacity = useTransform(scrollYProgress, [0, 0.2, 0.6], [0, 1, 1]);
+export default function Birthday({ onComplete }: { onComplete?: () => void }) {
+  const [showLetter, setShowLetter] = useState(false);
 
-  const list = photos.birthday ?? [];
+  // FilmScene 照片播完后自动显示信件
+  // 估算时间：title 3s + photos 4.5s × 4 = 21s
+  useEffect(() => {
+    const t = setTimeout(() => setShowLetter(true), 21000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // 信件显示 8 秒后通知场景控制器
+  useEffect(() => {
+    if (showLetter && onComplete) {
+      const t = setTimeout(onComplete, 10000);
+      return () => clearTimeout(t);
+    }
+  }, [showLetter, onComplete]);
+
+  if (!showLetter) {
+    return (
+      <FilmScene
+        scene="05"
+        titleZh="彤"
+        titleEn="Her Name Is Tong"
+        photos={photos.birthday ?? []}
+        tone="rose"
+      />
+    );
+  }
 
   return (
-    <section
-      ref={ref}
-      className="chapter relative py-24"
+    <div
+      className="relative w-full h-full overflow-y-auto"
       style={{
         background:
-          'radial-gradient(circle at 50% 30%, #FFEFDC 0%, #FBD6CF 50%, #F5EDE0 100%)',
+          'radial-gradient(ellipse at 50% 20%, #1c150c 0%, #110c06 60%, #080604 100%)',
       }}
     >
-      <div className="relative z-10 w-full max-w-md mx-auto px-8 flex flex-col items-center gap-12">
-        {/* 大字 + 视频环绕 */}
-        <div className="relative w-full flex items-center justify-center h-[60vh] min-h-[420px]">
-          {/* 视频/AI 肖像（占位时为渐变） */}
-          <div className="absolute inset-x-6 inset-y-0 rounded-sm overflow-hidden opacity-80">
-            <VideoSlot
-              src={videos.birthdayPortrait}
-              className="absolute inset-0 w-full h-full"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-paper/90" />
-          </div>
+      <div
+        className="light-beam"
+        style={{
+          top: '-6%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '85%',
+          height: '45%',
+          background:
+            'radial-gradient(ellipse at center, rgba(240,200,120,0.16) 0%, transparent 70%)',
+        }}
+      />
+      <FilmGrain opacity={0.06} />
 
-          {/* 大彤字 */}
-          <motion.div
-            style={{ scale: tongScale, opacity: tongOpacity }}
-            className="relative z-10 select-none"
-          >
-            <span
-              className="font-kai gold-text leading-none drop-shadow-soft"
-              style={{ fontSize: 'clamp(180px, 55vw, 320px)' }}
-            >
-              {copy.birthday.title}
-            </span>
-            {/* 小印章 */}
-            <div className="absolute -bottom-2 -right-2">
-              <ChineseSeal text="生辰" size={56} rotate={-12} />
-            </div>
-          </motion.div>
-        </div>
-
-        {/* 副标题 */}
-        <Reveal>
-          <div className="flex flex-col items-center gap-3">
-            <span className="font-en italic text-rouge text-sm tracking-[0.4em]">
-              {copy.birthday.eyebrow}
-            </span>
-            <h3
-              className="font-kai text-ink text-3xl tracking-[0.3em]"
-              style={{ letterSpacing: '0.3em' }}
-            >
-              {copy.birthday.date}
-            </h3>
-            <span className="font-kai text-gold text-base tracking-[0.3em]">
-              {copy.birthday.age} 岁
-            </span>
-            <InkBrushDivider color="#B03A48" width={200} />
-          </div>
-        </Reveal>
-
-        {/* 她的三张照片 */}
-        <div className="w-full grid grid-cols-3 gap-2">
-          {[0, 1, 2].map((i) => (
-            <Reveal key={i} delay={0.05 + i * 0.1}>
-              <PhotoSlot
-                src={list[i]?.src}
-                ratio="portrait"
-                label={`她 · 0${i + 1}`}
-              />
-            </Reveal>
-          ))}
-        </div>
+      <div className="relative z-[4] w-full max-w-md mx-auto px-8 py-20 flex flex-col items-center gap-12 min-h-full justify-center">
+        {/* 章节头 */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <span className="scene-marker font-en">INSERT · A LETTER</span>
+          <h3 className="font-kai cine-title text-3xl tracking-[0.3em]">
+            {copy.birthday.date}
+          </h3>
+          <span className="font-kai text-base tracking-[0.3em] gold-text-cine">
+            {copy.birthday.age} 岁
+          </span>
+          <span className="hairline-gold w-24" />
+        </motion.div>
 
         {/* 主旨段 */}
-        <Reveal delay={0.2}>
-          <p className="font-song text-ink/80 text-base leading-loose text-center max-w-sm whitespace-pre-line">
-            {copy.birthday.body}
-          </p>
-        </Reveal>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.4, delay: 0.2 }}
+          className="font-song text-[#F3EBDD]/85 text-base leading-loose text-center max-w-sm whitespace-pre-line"
+        >
+          {copy.birthday.body}
+        </motion.p>
 
-        {/* 一封信 */}
-        <Reveal delay={0.3}>
-          <div className="w-full mt-6 px-7 py-9 relative bg-paperSoft/85 border border-rouge/15 rounded-sm shadow-[0_12px_40px_-12px_rgba(176,58,72,0.18)]">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 bg-paperSoft text-mist text-xs tracking-[0.3em] font-kai">
+        {/* 信纸 */}
+        <div className="w-full mt-4 relative">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.4, delay: 0.4 }}
+            className="relative px-7 py-10 bg-black/35 backdrop-blur-md rounded-sm"
+            style={{
+              border: '1px solid rgba(201,163,104,0.22)',
+              boxShadow: '0 24px 70px -18px rgba(0,0,0,0.7)',
+            }}
+          >
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 cine-eyebrow text-xs tracking-[0.3em] font-kai"
+              style={{ background: '#130e08' }}
+            >
               {copy.birthday.letterLead}
             </div>
-            <div className="font-kai text-ink/90 text-[15px] leading-[2] tracking-wide space-y-1 whitespace-pre-line">
+
+            <div className="font-kai text-[#F3EBDD]/88 text-[15px] leading-[2.1] tracking-wide space-y-1">
               {copy.birthday.letter.map((line, i) => (
-                <p key={i} className={i === 0 ? 'font-bold' : ''}>
+                <motion.p
+                  key={i}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.9, delay: 0.6 + i * LETTER_DELAY / 1000 }}
+                  className={`whitespace-pre-line ${i === 0 ? 'font-bold' : ''} ${
+                    line === '' ? 'h-3' : ''
+                  }`}
+                >
                   {line}
-                </p>
+                </motion.p>
               ))}
             </div>
+
             <div className="absolute -bottom-5 right-3">
               <ChineseSeal text="爱你" size={52} rotate={-8} />
             </div>
-          </div>
-        </Reveal>
+          </motion.div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }

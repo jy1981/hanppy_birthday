@@ -6,7 +6,13 @@ import { useEffect, useRef } from 'react';
  * 花瓣飘落（canvas 实现，性能轻）。
  * 全屏覆盖，pointer-events-none。
  */
-export default function Petals({ count = 18 }: { count?: number }) {
+export default function Petals({
+  count = 18,
+  variant = 'sakura',
+}: {
+  count?: number;
+  variant?: 'sakura' | 'snow';
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -53,8 +59,8 @@ export default function Petals({ count = 18 }: { count?: number }) {
         vx: -0.3 + Math.random() * 0.6,
         a: Math.random() * Math.PI * 2,
         va: -0.02 + Math.random() * 0.04,
-        hue: 340 + Math.random() * 20, // 粉-玫红
-        o: 0.5 + Math.random() * 0.4,
+        hue: variant === 'snow' ? 210 + Math.random() * 10 : 340 + Math.random() * 20,
+        o: variant === 'snow' ? 0.3 + Math.random() * 0.3 : 0.5 + Math.random() * 0.4,
       };
     }
 
@@ -63,8 +69,13 @@ export default function Petals({ count = 18 }: { count?: number }) {
       ctx.translate(p.x, p.y);
       ctx.rotate(p.a);
       const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, p.r);
-      grd.addColorStop(0, `hsla(${p.hue}, 65%, 80%, ${p.o})`);
-      grd.addColorStop(1, `hsla(${p.hue}, 55%, 70%, 0)`);
+      if (variant === 'snow') {
+        grd.addColorStop(0, `hsla(${p.hue}, 20%, 95%, ${p.o})`);
+        grd.addColorStop(1, `hsla(${p.hue}, 15%, 90%, 0)`);
+      } else {
+        grd.addColorStop(0, `hsla(${p.hue}, 65%, 80%, ${p.o})`);
+        grd.addColorStop(1, `hsla(${p.hue}, 55%, 70%, 0)`);
+      }
       ctx.fillStyle = grd;
       ctx.beginPath();
       ctx.ellipse(0, 0, p.r * 0.55, p.r, 0, 0, Math.PI * 2);
@@ -93,7 +104,7 @@ export default function Petals({ count = 18 }: { count?: number }) {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
     };
-  }, [count]);
+  }, [count, variant]);
 
   return (
     <canvas

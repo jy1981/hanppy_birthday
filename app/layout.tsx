@@ -56,6 +56,16 @@ export const metadata: Metadata = {
   title: '致 彤彤 · 二周年与生辰',
   description: '一份写给你的小礼物',
   robots: { index: false, follow: false },
+  icons: {
+    icon: '/media/icon/icon-192.png',
+    apple: '/media/icon/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    title: '致彤彤',
+    statusBarStyle: 'black-translucent',
+  },
+  manifest: '/manifest.webmanifest',
 };
 
 export const viewport: Viewport = {

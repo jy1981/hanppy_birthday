@@ -1,0 +1,21 @@
+{
+  "name": "致彤彤 · 二周年与生辰",
+  "short_name": "致彤彤",
+  "description": "一份写给你的小礼物",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060504",
+  "theme_color": "#F5EDE0",
+  "icons": [
+    {
+      "src": "/media/icon/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/media/icon/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

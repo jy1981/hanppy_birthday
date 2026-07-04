@@ -34,9 +34,9 @@ export function PhotoSlot({
       className={`relative overflow-hidden rounded-sm ${ratioClass[ratio]} ${className}`}
       style={{
         background:
-          'linear-gradient(135deg, #EDE0CC 0%, #E4C6D0 60%, #C9A368 100%)',
+          'linear-gradient(150deg, #1c1815 0%, #2a221c 45%, #3a2e24 100%)',
         boxShadow:
-          '0 12px 40px -10px rgba(31,27,26,0.25), inset 0 0 0 1px rgba(201,163,104,0.4)',
+          '0 18px 50px -12px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(201,163,104,0.18)',
       }}
     >
       {showImg ? (
@@ -49,7 +49,7 @@ export function PhotoSlot({
           className="absolute inset-0 w-full h-full object-cover"
         />
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-ink/40">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-gold/30">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden>
             <rect
               x="3"
@@ -112,7 +112,7 @@ export function VideoSlot({
         className={`relative overflow-hidden ${className}`}
         style={{
           background:
-            'radial-gradient(ellipse at 30% 30%, #F1E0B0 0%, #E4C6D0 40%, #B03A48 100%)',
+            'radial-gradient(ellipse at 40% 30%, #2a221c 0%, #1a1512 50%, #0d0a08 100%)',
         }}
       >
         {fallback}

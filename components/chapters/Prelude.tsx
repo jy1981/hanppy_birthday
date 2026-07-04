@@ -1,77 +1,82 @@
 'use client';
 
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { copy } from '@/lib/manifest';
-import InkBrushDivider from '@/components/ui/InkBrushDivider';
+import FilmGrain from '@/components/ui/FilmGrain';
+
+const CARD_DURATION = 3500;
 
 /**
- * 序章：卷轴展开效果。滚动时左右滚轴向两侧拉开，露出诗句。
+ * Prelude — 片头字幕卡（自动播放版）。
+ * 黑幕上逐张淡入淡出的字幕，定时自动切换。
  */
-export default function Prelude() {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start end', 'end start'],
-  });
+export default function Prelude({ onComplete }: { onComplete?: () => void }) {
+  const cards = copy.prelude.cards;
+  const [index, setIndex] = useState(0);
 
-  // 卷轴完全打开：从中央往两侧各推 100%（= 各自宽度，刚好滑出屏幕）
-  const leftX = useTransform(scrollYProgress, [0.12, 0.55], ['0%', '-100%']);
-  const rightX = useTransform(scrollYProgress, [0.12, 0.55], ['0%', '100%']);
-  const innerOpacity = useTransform(scrollYProgress, [0.28, 0.55], [0, 1]);
-  const innerScale = useTransform(scrollYProgress, [0.28, 0.65], [0.94, 1]);
+  useEffect(() => {
+    if (index < cards.length - 1) {
+      const t = setTimeout(() => setIndex(index + 1), CARD_DURATION);
+      return () => clearTimeout(t);
+    }
+    // 最后一张播完后通知场景控制器
+    if (onComplete) {
+      const t = setTimeout(onComplete, CARD_DURATION);
+      return () => clearTimeout(t);
+    }
+  }, [index, cards.length, onComplete]);
 
   return (
-    <section ref={ref} className="chapter paper-texture relative py-24">
-      <div className="relative w-full max-w-md mx-auto h-[100svh] flex items-center justify-center px-6">
-        {/* 卷轴内容 */}
+    <div className="relative w-full h-full overflow-hidden bg-[#060504] flex items-center justify-center">
+      {/* 极暗的中央光晕 */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: '30%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '80%',
+          height: '50%',
+          background:
+            'radial-gradient(ellipse at center, rgba(212,166,86,0.06) 0%, transparent 70%)',
+          filter: 'blur(40px)',
+        }}
+      />
+      <FilmGrain opacity={0.07} />
+
+      <AnimatePresence mode="wait">
         <motion.div
-          style={{ opacity: innerOpacity, scale: innerScale }}
-          className="relative z-10 flex flex-col items-center gap-8 text-center px-6"
+          key={index}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -14 }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 flex items-center justify-center px-10"
         >
-          <div className="font-en italic text-gold text-sm tracking-[0.4em]">— Prelude —</div>
-          <h2
-            className="font-kai text-ink text-balance"
-            style={{ fontSize: 'clamp(36px, 9vw, 56px)', letterSpacing: '0.3em' }}
-          >
-            {copy.prelude.poem.split(' · ').map((s, i, arr) => (
-              <span key={i}>
-                {s}
-                {i < arr.length - 1 && (
-                  <span className="mx-3 text-gold align-middle">·</span>
-                )}
-              </span>
-            ))}
-          </h2>
-          <InkBrushDivider color="#B03A48" />
-          <p className="font-song text-ink/80 text-base leading-loose max-w-xs">
-            {copy.prelude.sub}
+          <p className="font-kai title-card text-2xl sm:text-3xl text-center text-balance">
+            {cards[index]}
           </p>
         </motion.div>
+      </AnimatePresence>
 
-        {/* 左卷轴 */}
-        <motion.div
-          style={{ x: leftX }}
-          className="absolute inset-y-0 left-0 w-1/2 z-20 pointer-events-none"
-        >
-          <div className="absolute inset-y-0 right-0 w-full paper-texture-warm shadow-[8px_0_24px_rgba(0,0,0,0.08)]" />
-          {/* 卷轴杆 */}
-          <div className="absolute inset-y-6 right-0 w-1.5 bg-gradient-to-b from-[#8C6E3A]/70 via-[#6B5226]/60 to-[#8C6E3A]/70 rounded-r-sm" />
-          <div className="absolute right-[-1px] top-2 w-2 h-2 rounded-full bg-[#8C6E3A]/70" />
-          <div className="absolute right-[-1px] bottom-2 w-2 h-2 rounded-full bg-[#8C6E3A]/70" />
-        </motion.div>
-
-        {/* 右卷轴 */}
-        <motion.div
-          style={{ x: rightX }}
-          className="absolute inset-y-0 right-0 w-1/2 z-20 pointer-events-none"
-        >
-          <div className="absolute inset-y-0 left-0 w-full paper-texture-warm shadow-[-8px_0_24px_rgba(0,0,0,0.08)]" />
-          <div className="absolute inset-y-6 left-0 w-1.5 bg-gradient-to-b from-[#8C6E3A]/70 via-[#6B5226]/60 to-[#8C6E3A]/70 rounded-l-sm" />
-          <div className="absolute left-[-1px] top-2 w-2 h-2 rounded-full bg-[#8C6E3A]/70" />
-          <div className="absolute left-[-1px] bottom-2 w-2 h-2 rounded-full bg-[#8C6E3A]/70" />
-        </motion.div>
+      {/* 字幕进度小点 */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-1.5">
+        {cards.map((_, i) => (
+          <span
+            key={i}
+            className="rounded-full transition-all duration-500"
+            style={{
+              width: i === index ? 12 : 4,
+              height: 4,
+              background:
+                i === index
+                  ? 'rgba(212,166,86,0.5)'
+                  : 'rgba(201,163,104,0.12)',
+            }}
+          />
+        ))}
       </div>
-    </section>
+    </div>
   );
 }

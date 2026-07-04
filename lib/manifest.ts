@@ -7,6 +7,10 @@ export type Photo = {
   src: string;
   alt?: string;
   ratio?: 'portrait' | 'landscape' | 'square';
+  /** 电影字幕 — 随照片全屏展示时浮现在底部 */
+  caption?: string;
+  /** 字幕副行（英文/时间地点） */
+  sub?: string;
 };
 
 export type ChapterMedia = {
@@ -35,15 +39,144 @@ export const milestones = {
 /** 在此填写真实文件名即可加载；留空数组就是优雅占位 */
 export const photos: ChapterMedia = {
   cover: [
-    // { src: '/media/photos/cover/01.jpg', alt: '封面合照', ratio: 'portrait' },
+    { src: '/media/photos/cover/封面-婚纱.jpg', alt: '我们的合照', ratio: 'portrait' },
   ],
-  meet: [],
-  wedding: [],
+  meet: [
+    {
+      src: '/media/photos/meet/初见1.jpg',
+      alt: '初见',
+      caption: '初见你的那一刻，世界忽然安静了。',
+      sub: '初见 · 2024',
+    },
+    {
+      src: '/media/photos/meet/初见2.JPG',
+      alt: '初见',
+      caption: '你看我，我看你，话还没说，心就先笑了。',
+      sub: '初见 · 2024',
+    },
+    {
+      src: '/media/photos/meet/初见3.jpg',
+      alt: '初见',
+      caption: '我假装看风景，其实在偷偷看你。',
+      sub: '大鹏 · 2024.05',
+    },
+    {
+      src: '/media/photos/meet/初见4.JPG',
+      alt: '初见',
+      caption: '那天的风很轻，阳光刚好落在你肩上。',
+      sub: '大鹏 · 2024.05',
+    },
+    {
+      src: '/media/photos/meet/初见5.JPG',
+      alt: '初见',
+      caption: '后来，我把“喜欢”换成了“余生”。',
+      sub: '订婚宴 · 2024.05.03',
+    },
+  ],
+  wedding: [
+    {
+      src: '/media/photos/wedding/婚纱1.jpg',
+      alt: '婚纱',
+      caption: '有幸为你披上婚纱',
+      sub: '婚纱照 · 2024.06',
+    },
+    {
+      src: '/media/photos/wedding/婚纱2.jpg',
+      alt: '婚纱·中式',
+      caption: '一拜天地，二拜高堂，三拜——余生都是你',
+      sub: '中式礼服 · 2024.06',
+    },
+    {
+      src: '/media/photos/wedding/婚纱3.jpg',
+      alt: '婚纱·外景',
+      caption: '愿得一心人，白首不相离',
+      sub: '2024.06.13 · 我们结婚了',
+    },
+  ],
   baby: [
-    // 宝宝小手 / 三人合照 / 妈妈抱宝宝
+    {
+      src: '/media/photos/baby/1_opt.jpg',
+      alt: '初啼',
+      caption: '我们在等 ta，等一个还未谋面的幸福',
+      sub: '待产 · 2025.04',
+    },
+    {
+      src: '/media/photos/baby/2_opt.jpg',
+      alt: '初啼',
+      caption: '小小一团，软软地哭，我们的心化了',
+      sub: '出生 · 2025.04.15',
+    },
+    {
+      src: '/media/photos/baby/3_opt.jpg',
+      alt: '初啼',
+      caption: '你抱着他，是我见过最美的画面',
+      sub: '满月 · 2025.05',
+    },
+    {
+      src: '/media/photos/baby/4_opt.jpg',
+      alt: '初啼',
+      caption: '百天的笑，和你一样',
+      sub: '百天 · 2025.07',
+    },
+    {
+      src: '/media/photos/baby/5_opt.jpg',
+      alt: '初啼',
+      caption: '安安静静地趴着，就是全世界',
+      sub: '成长 · 2025.08',
+    },
   ],
-  travel: [],
-  birthday: [],
+  travel: [
+    {
+      src: '/media/photos/travel/日常-海边黄昏.jpg',
+      alt: '日常·我们',
+      caption: '和你坐在一起，风都是甜的。',
+      sub: '海边 · 黄昏',
+    },
+    {
+      src: '/media/photos/travel/日常-旅途晚餐.jpg',
+      alt: '日常·我们',
+      caption: '一盘面，两双筷子，万丈烟火。',
+      sub: '旅途 · 晚餐',
+    },
+    {
+      src: '/media/photos/travel/日常-随手拍.jpg',
+      alt: '日常·我们',
+      caption: '你一抬眼，我就按下了快门。',
+      sub: '随手拍 · 却是最喜欢的一张',
+    },
+    {
+      src: '/media/photos/travel/日常-午后发呆.jpg',
+      alt: '日常·我们',
+      caption: '家里最小的那位，正在自己发呆。',
+      sub: '家 · 午后',
+    },
+    {
+      src: '/media/photos/travel/日常-我们仨.jpg',
+      alt: '日常·我们',
+      caption: '所谓幸福，就是重复过好每一个平凡的日子。',
+      sub: '我们仨 · 进行时',
+    },
+  ],
+  birthday: [
+    {
+      src: '/media/photos/birthday/彤彤-00_opt.jpg',
+      alt: '彤彤',
+      caption: '你是今天的主角',
+      sub: '彤 · 芳华',
+    },
+    {
+      src: '/media/photos/birthday/彤彤-01.jpg',
+      alt: '彤彤',
+      caption: '你的笑，是这世上最美的风景',
+      sub: '永远十八',
+    },
+    {
+      src: '/media/photos/birthday/宝宝的笑.jpg',
+      alt: '宝宝的笑',
+      caption: '他的笑，是你给这个家最好的礼物',
+      sub: '小宝 · 2025',
+    },
+  ],
 };
 
 /** 视频路径，缺失时静默隐藏 */
@@ -74,6 +207,13 @@ export const copy = {
   },
 
   prelude: {
+    /** 片头字幕卡 — 逐张淡入淡出 */
+    cards: [
+      '本片改编自一个真实的故事',
+      '故事的主角，叫 彤彤',
+      '到今天，它已经连载了 两年零二十天',
+      '并将持续更新，直到永远',
+    ],
     poem: '执子之手 · 与子偕老',
     sub: '愿这卷轴之后，是我们走过的两年，\n与你永远十八岁的夏天。',
   },
@@ -124,7 +264,7 @@ export const copy = {
     age: '永远十八',
     body:
       '彤，是日出时天边最暖的那抹红。\n是你笑起来的脸颊，\n是宝宝望向你时的眼睛。\n\n这是你成为妈妈之后的——\n又一个 被爱着 的 生 日。',
-    letterLead: '——一封写给你的小信——',
+    letterLead: '一封写给你的小信',
     letter: [
       '彤彤：',
       '',
@@ -155,8 +295,22 @@ export const copy = {
     eyebrow: '— Finale · 来日方长 —',
     title: '来日方长',
     sub: '吹灭蜡烛 · 许个愿吧',
-    wish: '愿我们仨的第三年、第十年、第五十年——\n仍然像今天一样，相视而笑。',
+    wish: '愿我们的第三年、第十年、第五十年——\n仍然像今天一样，相视而笑。',
     seal: '与 彤 偕老',
-    signature: `先生 · ${family.papa.birthday}  ·   彤 · ${family.mama.birthday}  ·  小宝 · ${family.baby.birthday}`,
+    signature: '你的先生 · 二〇二六 · 夏',
+    /** 片尾演职员表 — 惊喜彩蛋 */
+    credits: [
+      { role: '领衔主演', name: '彤彤' },
+      { role: '特别出演', name: '小宝' },
+      { role: '导演', name: '你的先生' },
+      { role: '编剧', name: '你的先生' },
+      { role: '摄影', name: '你的先生' },
+      { role: '灯光', name: '每一个有你的清晨' },
+      { role: '配乐', name: '你的笑' },
+      { role: '出品方', name: '我们仨' },
+      { role: '上映日期', name: '2026.07.06' },
+      { role: '片长', name: '余生那么长' },
+    ],
+    afterCredits: '彩蛋：明年还有续集。',
   },
 } as const;

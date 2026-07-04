@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { copy } from '@/lib/manifest';
-import FloralCorner from '@/components/ui/FloralCorner';
+import FilmGrain from '@/components/ui/FilmGrain';
 
 /**
- * 入场门：长按 1.2 秒进入，用户手势同时解锁音频自动播放
+ * 电影开场 — 首映式入场券。
+ * 黑幕 + 制片方字幕 + 长按「开始放映」，
+ * 长按手势同时解锁音频自动播放。
  */
 export default function EntryGate({ onEnter }: { onEnter: () => void }) {
   const [progress, setProgress] = useState(0);
@@ -23,9 +25,11 @@ export default function EntryGate({ onEnter }: { onEnter: () => void }) {
       if (p < 1) {
         holdRef.current = requestAnimationFrame(tick);
       } else {
+        // 请求全屏
+        const el = document.documentElement;
+        el.requestFullscreen?.().catch(() => {});
         setClosing(true);
-        // 等关门动画结束再切
-        setTimeout(onEnter, 900);
+        setTimeout(onEnter, 1100);
       }
     };
     holdRef.current = requestAnimationFrame(tick);
@@ -46,65 +50,175 @@ export default function EntryGate({ onEnter }: { onEnter: () => void }) {
           key="gate"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.6 }}
-          className="fixed inset-0 z-[100] paper-texture flex items-center justify-center"
+          transition={{ duration: 1.1, ease: 'easeInOut' }}
+          className="fixed inset-0 z-[100] bg-[#060504] flex items-center justify-center overflow-hidden"
         >
-          {/* 左右开门 */}
-          <motion.div
-            initial={{ x: 0 }}
-            animate={{ x: closing ? '-100%' : 0 }}
-            transition={{ duration: 0.9, ease: [0.7, 0, 0.3, 1] }}
-            className="absolute inset-y-0 left-0 w-1/2 bg-[#B03A48]/95"
-            style={{ boxShadow: 'inset -20px 0 60px rgba(0,0,0,0.4)' }}
-          >
-            <div className="absolute right-0 inset-y-0 w-1 bg-gold/80" />
-            <div className="absolute top-1/2 right-2 -translate-y-1/2 w-3 h-3 rounded-full bg-gold shadow-[0_0_12px_#C9A368]" />
-          </motion.div>
-          <motion.div
-            initial={{ x: 0 }}
-            animate={{ x: closing ? '100%' : 0 }}
-            transition={{ duration: 0.9, ease: [0.7, 0, 0.3, 1] }}
-            className="absolute inset-y-0 right-0 w-1/2 bg-[#B03A48]/95"
-            style={{ boxShadow: 'inset 20px 0 60px rgba(0,0,0,0.4)' }}
-          >
-            <div className="absolute left-0 inset-y-0 w-1 bg-gold/80" />
-            <div className="absolute top-1/2 left-2 -translate-y-1/2 w-3 h-3 rounded-full bg-gold shadow-[0_0_12px_#C9A368]" />
-          </motion.div>
+          {/* 一束极暗的顶光 */}
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: '-20%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '90%',
+              height: '70%',
+              background:
+                'radial-gradient(ellipse at center, rgba(212,166,86,0.10) 0%, transparent 65%)',
+              filter: 'blur(50px)',
+            }}
+          />
+          <FilmGrain opacity={0.08} />
 
-          {/* 中央：浮在两扇门上的引导 */}
-          <div className="relative z-10 flex flex-col items-center gap-10 text-center px-8 pointer-events-none">
+          {/* 中央内容 */}
+          <div className="relative z-10 flex flex-col items-center gap-0 text-center px-8">
+            {/* 制片方字幕 */}
             <motion.div
-              initial={{ y: 12, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 1 }}
-              className="font-kai text-paper text-2xl tracking-[0.5em]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 1.4 }}
+              className="scene-marker font-en mb-10"
             >
-              壹 份 小 礼 物
+              A FILM BY YOUR HUSBAND
             </motion.div>
-            <motion.h1
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.6, duration: 1.2 }}
-              className="font-kai text-paper text-7xl tracking-[0.3em] drop-shadow-soft"
-              style={{ writingMode: 'horizontal-tb' }}
-            >
-              致 {copy.her}
-            </motion.h1>
 
+            {/* 片名 — 烫金逐字浮现 */}
+            <div className="flex items-center justify-center" style={{ gap: '0.05em' }}>
+              {copy.cover.title.split('').map((char, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  transition={{
+                    duration: 1.4,
+                    delay: 0.9 + i * 0.25,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="font-kai gold-text-cine text-7xl sm:text-8xl leading-none"
+                  style={{
+                    textIndent: '0.35em',
+                    textShadow: '0 2px 40px rgba(0,0,0,0.5), 0 0 60px rgba(212,166,86,0.2)',
+                  }}
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </div>
+
+            {/* 副题 */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.8, duration: 1.2 }}
+              className="mt-8 flex flex-col items-center gap-4"
+            >
+              <span className="hairline-gold w-20" />
+              <span className="font-song text-xs tracking-[0.5em] text-[#F3EBDD]/50">
+                {copy.cover.eyebrow} · 两周年纪念作品
+              </span>
+              <span className="font-en italic text-[11px] tracking-[0.4em] text-[#D4A656]/60">
+                PREMIERE · 2026.07.06
+              </span>
+            </motion.div>
+
+            {/* 长按开始放映 */}
             <motion.button
               type="button"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.2, duration: 0.8 }}
+              transition={{ delay: 2.6, duration: 1 }}
               onPointerDown={start}
               onPointerUp={cancel}
               onPointerLeave={cancel}
               onPointerCancel={cancel}
-              className="pointer-events-auto relative mt-4 select-none"
-              aria-label="长按进入"
+              className="relative mt-16 select-none"
+              aria-label="长按开始放映"
+              style={{ touchAction: 'manipulation' }}
             >
-              <span className="block w-32 h-32 rounded-full border border-gold/70 bg-paper/10 backdrop-blur-sm flex items-center justify-center font-kai text-paper text-lg tracking-[0.3em]">
-                长 按
+              {/* 外层金色脉冲光环 — 长按时呼吸扩散 */}
+              {progress > 0 && (
+                <>
+                  <motion.span
+                    initial={{ scale: 1, opacity: 0.5 }}
+                    animate={{ scale: [1, 1.35, 1], opacity: [0.4, 0, 0.4] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{
+                      boxShadow: `0 0 ${30 + progress * 50}px rgba(212,166,86,${0.15 + progress * 0.3})`,
+                    }}
+                  />
+                  <motion.span
+                    initial={{ scale: 1, opacity: 0.3 }}
+                    animate={{ scale: [1, 1.55, 1], opacity: [0.25, 0, 0.25] }}
+                    transition={{ duration: 2.6, repeat: Infinity, ease: 'easeOut', delay: 0.3 }}
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{
+                      boxShadow: `0 0 ${40 + progress * 60}px rgba(241,224,176,${0.1 + progress * 0.2})`,
+                    }}
+                  />
+                </>
+              )}
+
+              {/* 旋转金色光束 — 长按时出现 */}
+              {progress > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: progress * 0.7, rotate: 360 }}
+                  transition={{ rotate: { duration: 8, repeat: Infinity, ease: 'linear' }, opacity: { duration: 0.3 } }}
+                  className="absolute inset-0 rounded-full pointer-events-none overflow-hidden"
+                >
+                  <div
+                    className="absolute inset-[-50%]"
+                    style={{
+                      background: `conic-gradient(from 0deg, transparent 0deg, rgba(212,166,86,${0.15 + progress * 0.25}) 30deg, transparent 60deg, transparent 180deg, rgba(241,224,176,${0.1 + progress * 0.2}) 210deg, transparent 240deg)`,
+                    }}
+                  />
+                </motion.div>
+              )}
+
+              {/* 金色粒子 — 长按时向上飘散 */}
+              {progress > 0 && (
+                <div className="absolute inset-0 pointer-events-none overflow-visible">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <motion.span
+                      key={i}
+                      initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
+                      animate={{
+                        opacity: [0, progress * 0.9, 0],
+                        y: [-10 - i * 12, -50 - i * 18],
+                        x: [(i - 3) * 6, (i - 3) * 14],
+                        scale: [0, 1, 0.3],
+                      }}
+                      transition={{
+                        duration: 2 + i * 0.3,
+                        repeat: Infinity,
+                        delay: i * 0.15,
+                        ease: 'easeOut',
+                      }}
+                      className="absolute left-1/2 top-1/2 w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background: i % 2 === 0 ? '#D4A656' : '#F1E0B0',
+                        boxShadow: '0 0 6px rgba(212,166,86,0.8)',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <span
+                className="flex w-28 h-28 rounded-full items-center justify-center font-kai text-sm tracking-[0.35em] text-[#F3EBDD]/85"
+                style={{
+                  border: `1px solid rgba(201,163,104,${0.35 + progress * 0.4})`,
+                  background: `rgba(212,166,86,${0.05 + progress * 0.08})`,
+                  backdropFilter: 'blur(4px)',
+                  textIndent: '0.35em',
+                  boxShadow:
+                    progress > 0
+                      ? `0 0 ${20 + progress * 50}px rgba(212,166,86,${0.15 + progress * 0.35}), inset 0 0 ${10 + progress * 20}px rgba(241,224,176,${0.05 + progress * 0.15})`
+                      : 'none',
+                  transition: 'box-shadow 0.15s, border-color 0.15s, background 0.15s',
+                }}
+              >
+                放 映
               </span>
               {/* 进度环 */}
               <svg
@@ -115,30 +229,40 @@ export default function EntryGate({ onEnter }: { onEnter: () => void }) {
                 <circle
                   cx="50"
                   cy="50"
-                  r="48"
+                  r="49"
                   fill="none"
-                  stroke="#C9A368"
-                  strokeWidth="2"
-                  strokeDasharray={2 * Math.PI * 48}
-                  strokeDashoffset={2 * Math.PI * 48 * (1 - progress)}
+                  stroke="rgba(201,163,104,0.15)"
+                  strokeWidth="1"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="49"
+                  fill="none"
+                  stroke="#D4A656"
+                  strokeWidth="1.5"
+                  strokeDasharray={2 * Math.PI * 49}
+                  strokeDashoffset={2 * Math.PI * 49 * (1 - progress)}
                   strokeLinecap="round"
-                  style={{ transition: 'stroke-dashoffset 0.08s linear' }}
+                  style={{
+                    transition: 'stroke-dashoffset 0.08s linear',
+                    filter: progress > 0
+                      ? `drop-shadow(0 0 ${4 + progress * 8}px rgba(212,166,86,${0.5 + progress * 0.5}))`
+                      : 'none',
+                  }}
                 />
               </svg>
             </motion.button>
 
             <motion.div
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.6, duration: 1 }}
-              className="font-song text-paper/80 text-sm tracking-[0.3em]"
+              animate={{ opacity: [0, 0.5, 0.3, 0.5] }}
+              transition={{ delay: 3.2, duration: 3, repeat: Infinity }}
+              className="mt-6 font-song text-[11px] tracking-[0.4em] text-[#F3EBDD]/35"
             >
-              · 推 开 这 扇 门 ·
+              长按 · 开始放映
             </motion.div>
           </div>
-
-          {/* 四角花卉 */}
-          <FloralCorner color="#C9A368" />
         </motion.div>
       )}
     </AnimatePresence>
