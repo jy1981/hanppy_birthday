@@ -100,15 +100,32 @@ npm run build
 如果要用命令行登录，可以在项目目录执行：
 
 ```bash
-npx vercel@37.14.0 login
+npx vercel@latest login
 ```
 
-命令会让你输入邮箱，Vercel 会发送验证邮件。点邮件里的确认链接后，终端会完成登录。
+新版 Vercel CLI 使用 Device Flow，流程是：
+
+1. 终端会显示一个登录网址和一串验证码。
+2. 打开终端提示的网址。
+3. 如果网页还没登录 Vercel，先选择 `Continue with GitHub` 登录。
+4. 网页会显示本次 CLI 登录请求，核对验证码、位置、IP、请求时间。
+5. 确认是自己当前这台机器发起的请求后，点击 `Approve` / `Authorize`。
+6. 回到终端，看到登录成功提示即可。
+
+注意：
+
+- 不要批准陌生地点、陌生 IP、陌生时间发起的登录请求。
+- 旧的邮箱参数登录、`--github`、`--gitlab` 等方式已经被 Vercel 标记为废弃。
+- 如果 `npx vercel@latest login` 因 npm 依赖解析失败，可以临时使用已验证可运行的版本：
+
+```bash
+npx vercel@37.14.0 login
+```
 
 验证 CLI 是否登录成功：
 
 ```bash
-npx vercel@37.14.0 whoami
+npx vercel@latest whoami
 ```
 
 如果能输出账号名，说明 CLI 已登录。当前机器之前未登录时会报：
@@ -117,7 +134,7 @@ npx vercel@37.14.0 whoami
 No existing credentials found. Please run `vercel login` or pass "--token"
 ```
 
-这种情况按上面的 `npx vercel@37.14.0 login` 重新登录即可。
+这种情况按上面的 `npx vercel@latest login` 重新登录即可。
 
 ### 4. 在 Vercel 导入项目
 
