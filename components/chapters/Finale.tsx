@@ -171,6 +171,20 @@ function CreditsRoll() {
     <div className="relative w-full h-full overflow-hidden bg-[#040302]">
       <FilmGrain opacity={0.07} />
 
+      {/* 片尾放映光束 — 顶部一束缓慢呼吸的暖光，像放映机仍在转动 */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0.3, 0.5, 0.35] }}
+        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+        className="pointer-events-none absolute left-1/2 top-0 h-[45%] w-[130%] -translate-x-1/2"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 0%, rgba(212,166,86,0.10) 0%, rgba(212,166,86,0.03) 45%, transparent 72%)',
+          filter: 'blur(34px)',
+        }}
+      />
+
       <motion.div
         initial={{ y: '80vh' }}
         animate={{ y: '-130%' }}

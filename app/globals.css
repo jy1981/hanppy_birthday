@@ -284,6 +284,20 @@ body {
   letter-spacing: 0.18em;
 }
 
+/* 放映机过片门轻微抖动 — 亚像素级 weave，模拟真实胶片放映时的画面浮动 */
+.gate-weave {
+  animation: gateWeave 7s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes gateWeave {
+  0%   { transform: translate3d(0, 0, 0); }
+  20%  { transform: translate3d(0.4px, -0.5px, 0); }
+  40%  { transform: translate3d(-0.5px, 0.3px, 0); }
+  60%  { transform: translate3d(0.3px, 0.5px, 0); }
+  80%  { transform: translate3d(-0.4px, -0.3px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
 /* 自定义工具 */
 @layer utilities {
   .text-balance {
@@ -298,5 +312,32 @@ body {
   .mask-fade-b {
     -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
     mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
+  }
+  /* 文字辉光 — 烫金/白字外沿一层暖光，增强高级感 */
+  .text-halation {
+    text-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.55),
+      0 0 18px rgba(212, 166, 86, 0.22),
+      0 0 42px rgba(212, 166, 86, 0.14);
+  }
+}
+
+/* 尊重系统「减弱动态效果」偏好：关闭高频/无限循环动画，保留静态质感 */
+@media (prefers-reduced-motion: reduce) {
+  .gold-text,
+  .gold-text-cine,
+  .ken-burns,
+  .ken-burns-2,
+  .slow-breathe,
+  .gate-weave {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

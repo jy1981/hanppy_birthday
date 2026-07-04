@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CinemaFrame from './CinemaFrame';
 
 const AUTO_NEXT_MS = 5000;
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -93,7 +94,7 @@ export default function SceneController({
       onTouchEnd={onTouchEnd}
     >
       {/* 场景容器 */}
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-full gate-weave">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentScene.key}
@@ -108,6 +109,9 @@ export default function SceneController({
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* 全站电影画框 — letterbox + 暗角 + 辉光 + 动态颗粒 */}
+      <CinemaFrame />
 
       <AnimatePresence mode="wait">
         <motion.div

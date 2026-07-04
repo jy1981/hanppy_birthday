@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Photo } from '@/lib/manifest';
 import FilmGrain from './FilmGrain';
@@ -83,7 +83,7 @@ export default function FilmScene({
               initial={{ letterSpacing: '0.65em', opacity: 0 }}
               animate={{ letterSpacing: '0.3em', opacity: 1 }}
               transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
-              className="font-kai cine-title text-6xl sm:text-7xl"
+              className="font-kai cine-title text-halation text-6xl sm:text-7xl"
             >
               {titleZh}
             </motion.h2>
@@ -105,9 +105,26 @@ export default function FilmScene({
             photo={photos[photoIndex]}
             tone={tone}
             duration={PHOTO_DURATION}
+            index={photoIndex}
           />
         )}
       </AnimatePresence>
+
+      {/* 每次换片时的一束柔光 halation — 模拟胶片过曝的接片闪光 */}
+      {phase === 'photo' && (
+        <motion.div
+          key={`flash-${photoIndex}`}
+          initial={{ opacity: 0.32 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 z-[4] pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse at 50% 42%, rgba(245,224,176,0.55) 0%, rgba(212,166,86,0.18) 40%, transparent 72%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+      )}
 
       {/* 樱花飘落 — 仅 rose tone（婚纱场景） */}
       {tone === 'rose' && <Petals count={14} variant="sakura" />}
@@ -153,27 +170,27 @@ export default function FilmScene({
 
 /* ------------------------------------------------------------------ */
 
-function PhotoFrame({
-  photo,
-  tone,
-  duration,
-}: {
+const PhotoFrame = forwardRef<HTMLDivElement, {
   photo: Photo;
   tone: string;
   duration: number;
-}) {
+  index: number;
+}>(function PhotoFrame({ photo, tone, duration, index }, ref) {
+  // 交替运镜方向：奇偶张照片往相反方向缓慢平移，避免每张都一样
+  const dir = index % 2 === 0 ? 1 : -1;
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: CROSSFADE / 1000, ease: [0.22, 1, 0.36, 1] }}
       className="absolute inset-0 z-[2]"
     >
-      {/* 照片 + 缓慢推近 */}
+      {/* 照片 + 缓慢推近 + 交替平移 */}
       <motion.div
-        initial={{ scale: 1.12 }}
-        animate={{ scale: 1.02 }}
+        initial={{ scale: 1.14, x: dir * 14, y: -8 }}
+        animate={{ scale: 1.02, x: dir * -14, y: 6 }}
         transition={{ duration: duration / 1000, ease: 'linear' }}
         className="absolute inset-0"
       >
@@ -205,4 +222,4 @@ function PhotoFrame({
       )}
     </motion.div>
   );
-}
+});

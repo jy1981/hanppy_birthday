@@ -46,8 +46,37 @@ export default function Cover({ onComplete }: { onComplete?: () => void }) {
 
       <FilmGrain opacity={0.06} />
 
+      {/* 缓慢暖色光扫 — 模拟老放映机的漏光（light leak） */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0, x: '-40%' }}
+        animate={{ opacity: [0, 0.5, 0], x: ['-40%', '60%', '140%'] }}
+        transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        className="absolute inset-y-0 z-[3] w-1/2 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(105deg, transparent 0%, rgba(245,224,176,0.10) 45%, rgba(212,166,86,0.16) 52%, rgba(245,224,176,0.08) 60%, transparent 100%)',
+          filter: 'blur(26px)',
+          mixBlendMode: 'screen',
+        }}
+      />
+
       {/* 内容层 */}
       <div className="relative z-[4] w-full max-w-md mx-auto h-full px-8 flex flex-col items-center justify-center pb-[8vh]">
+        {/* 标题背后缓慢呼吸的暖金辉光 — 增加景深与高级感 */}
+        <motion.div
+          aria-hidden
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0.35, 0.6, 0.4], scale: [1, 1.06, 1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[36%]"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, rgba(212,166,86,0.22) 0%, rgba(212,166,86,0.06) 45%, transparent 72%)',
+            filter: 'blur(30px)',
+          }}
+        />
+
         {/* 顶部 eyebrow */}
         <motion.div
           initial={{ opacity: 0, y: 16, letterSpacing: '0.8em' }}
@@ -63,7 +92,7 @@ export default function Cover({ onComplete }: { onComplete?: () => void }) {
           initial={{ opacity: 0, y: 24, letterSpacing: '0.5em' }}
           animate={{ opacity: 1, y: 0, letterSpacing: '0.25em' }}
           transition={{ duration: 1.8, delay: 0.8, ease }}
-          className="font-kai cine-title leading-none"
+          className="font-kai cine-title text-halation leading-none"
           style={{ fontSize: 'clamp(72px, 22vw, 120px)' }}
         >
           {copy.cover.title}

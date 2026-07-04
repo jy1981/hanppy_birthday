@@ -60,7 +60,7 @@ export default function BgmToggle({ autoplay = false }: { autoplay?: boolean }) 
         type="button"
         onClick={toggle}
         aria-label={playing ? '暂停音乐' : '播放音乐'}
-        className="fixed top-4 right-4 z-[55] w-10 h-10 rounded-full bg-paper/60 backdrop-blur-md border border-gold/60 flex items-center justify-center shadow-md active:scale-95 transition"
+        className="fixed top-4 right-4 z-[200] w-10 h-10 rounded-full bg-paper/60 backdrop-blur-md border border-gold/60 flex items-center justify-center shadow-md active:scale-95 transition"
       >
         {playing ? <WaveIcon /> : <MuteIcon />}
       </button>
