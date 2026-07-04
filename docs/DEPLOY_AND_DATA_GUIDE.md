@@ -177,6 +177,116 @@ my-tontong
 
 如果有预览分支，Vercel 会给每个 PR/分支生成 Preview URL。
 
+### 6. 本项目实际部署记录
+
+当前本地 GitHub 仓库：
+
+```text
+https://github.com/jy1981/hanppy_birthday
+```
+
+当前 Vercel 登录账号：
+
+```text
+jy1981
+```
+
+验证命令：
+
+```bash
+npx --yes --registry=https://registry.npmjs.org vercel@latest whoami
+```
+
+当前默认链接的 Vercel 项目：
+
+```text
+Project Name: my-tongtong
+Project ID: prj_D3QwQcouuRf3sYiK9TNSuDApVayj
+Scope: jy1981s-projects
+```
+
+本地 `.vercel/project.json` 记录的是 `my-tongtong`。`.vercel`、`.env.local`、`.env*` 已加入 `.gitignore`，不要提交这些本地部署文件。
+
+历史上也创建过一个项目：
+
+```text
+Project Name: my_tongtong
+Project ID: prj_PkGpx7JKcGJMK4mdbGNpg8S3uMu2
+```
+
+`my_tongtong` 是按最初希望的下划线命名创建的，但部署后的 `.vercel.app` 访问同样返回 `404 NOT_FOUND`，因此后续改用更标准的 `my-tongtong`。
+
+当前 `my-tongtong` 最近一次生产部署：
+
+```text
+Deployment ID: dpl_2hdYNBcH5skL1fZmBdWxgvmkBqsY
+Deployment URL: https://my-tongtong-9uv7o84bf-jy1981s-projects.vercel.app
+Production Alias: https://my-tongtong.vercel.app
+Ready State: READY
+```
+
+当前 alias 列表里能看到：
+
+```text
+my-tongtong-9uv7o84bf-jy1981s-projects.vercel.app -> my-tongtong.vercel.app
+my-tongtong-9uv7o84bf-jy1981s-projects.vercel.app -> my-tongtong-jy1981s-projects.vercel.app
+my-tongtong-9uv7o84bf-jy1981s-projects.vercel.app -> my-tongtong-jy1981-jy1981s-projects.vercel.app
+```
+
+部署命令：
+
+```bash
+npx --yes --registry=https://registry.npmjs.org vercel@latest deploy --prod --yes --project my-tongtong --force
+```
+
+部署过程中遇到过内部 npm 源问题，已通过以下方式处理：
+
+- `package-lock.json` 中的 `resolved` 下载地址已统一换成 `https://registry.npmjs.org/`。
+- 部署命令里的 Vercel CLI 也统一使用官方 npm 源。
+- `.gitignore` 已忽略 `.vercel` 和 `.env*`。
+
+Vercel 项目保护状态：
+
+```json
+{
+  "name": "my-tongtong",
+  "ssoProtection": null,
+  "gitForkProtection": true
+}
+```
+
+已执行过关闭 SSO Deployment Protection：
+
+```bash
+npx --yes --registry=https://registry.npmjs.org vercel@latest project protection disable my-tongtong --sso
+```
+
+当前仍存在的问题：
+
+- Vercel `inspect` 显示部署 `READY`。
+- 构建日志显示 Next.js 路由已生成：`/` 和 `/api/wish`。
+- 但公网访问 `https://my-tongtong.vercel.app` 仍返回：
+
+```text
+HTTP/2 404
+x-vercel-error: NOT_FOUND
+```
+
+当前验证命令：
+
+```bash
+curl -I -L https://my-tongtong.vercel.app
+curl -sS https://my-tongtong.vercel.app/api/wish
+npx --yes --registry=https://registry.npmjs.org vercel@latest inspect https://my-tongtong.vercel.app --format=json
+```
+
+如果继续排查，优先看：
+
+- Vercel Dashboard 里 `my-tongtong -> Settings -> Domains` 是否显示 alias 正常绑定。
+- Vercel Dashboard 里 `my-tongtong -> Settings -> Deployment Protection` 是否还有团队级保护或项目级保护。
+- Vercel Dashboard 里 `my-tongtong -> Deployments -> Latest Deployment` 的 Functions / Output 是否能看到 `index` 和 `/api/wish`。
+- 如果 Dashboard 里也 404，建议删除 `my_tongtong` 和 `my-tongtong` 两个项目，直接从 GitHub 仓库 `jy1981/hanppy_birthday` 重新 Import Project，而不是 CLI 手工 `project add`。
+
 ## 二、申请 Supabase 数据库
 
 ### 1. 创建项目
