@@ -10,7 +10,6 @@ import { VideoSlot } from '@/components/ui/MediaSlot';
 import Fireworks from '@/components/ui/Fireworks';
 import Candles from '@/components/ui/Candles';
 import ChineseSeal from '@/components/ui/ChineseSeal';
-import FilmGrain from '@/components/ui/FilmGrain';
 import WishRecorder from '@/components/ui/WishRecorder';
 
 /**
@@ -27,8 +26,6 @@ export default function Finale() {
 
   return (
     <div className="relative w-full h-full overflow-hidden chapter night-texture vignette">
-      <FilmGrain opacity={0.05} />
-
       {/* 远景烟花视频 */}
       <div className="absolute inset-0 z-0 opacity-40">
         <VideoSlot
@@ -37,7 +34,7 @@ export default function Finale() {
         />
       </div>
 
-      <Fireworks active intensity={wished ? 2.5 : 1} celebrate={wished} />
+      <Fireworks active intensity={1} celebrate={wished} />
 
       <div className="relative z-[3] w-full max-w-md mx-auto px-8 py-16 flex flex-col items-center text-paper text-center h-full justify-between">
         <motion.div
@@ -169,8 +166,6 @@ function CreditsRoll() {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#040302]">
-      <FilmGrain opacity={0.07} />
-
       {/* 片尾放映光束 — 顶部一束缓慢呼吸的暖光，像放映机仍在转动 */}
       <motion.div
         aria-hidden

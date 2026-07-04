@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { copy, photos } from '@/lib/manifest';
 import FilmScene from '@/components/ui/FilmScene';
-import FilmGrain from '@/components/ui/FilmGrain';
 import ChineseSeal from '@/components/ui/ChineseSeal';
 
 const LETTER_DELAY = 200;
@@ -63,7 +62,6 @@ export default function Birthday({ onComplete }: { onComplete?: () => void }) {
             'radial-gradient(ellipse at center, rgba(240,200,120,0.16) 0%, transparent 70%)',
         }}
       />
-      <FilmGrain opacity={0.06} />
 
       <div className="relative z-[4] w-full max-w-md mx-auto px-8 py-20 flex flex-col items-center gap-12 min-h-full justify-center">
         {/* 章节头 */}

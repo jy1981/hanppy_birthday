@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { copy } from '@/lib/manifest';
-import FilmGrain from '@/components/ui/FilmGrain';
 
 const CARD_DURATION = 3500;
 
@@ -43,7 +42,6 @@ export default function Prelude({ onComplete }: { onComplete?: () => void }) {
           filter: 'blur(40px)',
         }}
       />
-      <FilmGrain opacity={0.07} />
 
       <AnimatePresence mode="wait">
         <motion.div

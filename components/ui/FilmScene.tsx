@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Photo } from '@/lib/manifest';
-import FilmGrain from './FilmGrain';
 import Petals from './Petals';
 
 const TITLE_DURATION = 3000;
@@ -144,7 +143,6 @@ export default function FilmScene({
             'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.88) 100%)',
         }}
       />
-      <FilmGrain opacity={0.07} />
 
       {/* 右上角常驻场景编号 */}
       <div className="absolute top-6 right-6 z-[6] scene-marker font-en">

@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { copy } from '@/lib/manifest';
 import { VideoSlot } from '@/components/ui/MediaSlot';
-import FilmGrain from '@/components/ui/FilmGrain';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -43,8 +42,6 @@ export default function Cover({ onComplete }: { onComplete?: () => void }) {
             'linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 25%, transparent 50%, rgba(0,0,0,0.55) 80%, rgba(0,0,0,0.85) 100%)',
         }}
       />
-
-      <FilmGrain opacity={0.06} />
 
       {/* 缓慢暖色光扫 — 模拟老放映机的漏光（light leak） */}
       <motion.div

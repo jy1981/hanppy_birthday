@@ -11,7 +11,6 @@ import Prelude from '@/components/chapters/Prelude';
 import Meet from '@/components/chapters/Meet';
 import Wedding from '@/components/chapters/Wedding';
 import Baby from '@/components/chapters/Baby';
-import Together from '@/components/chapters/Together';
 import Birthday from '@/components/chapters/Birthday';
 import Finale from '@/components/chapters/Finale';
 
@@ -59,14 +58,8 @@ export default function Page() {
         render: (onComplete: () => void) => <Baby onComplete={onComplete} />,
       },
       {
-        key: 'together',
-        label: 'Chapter IV',
-        title: '日常',
-        render: (onComplete: () => void) => <Together onComplete={onComplete} />,
-      },
-      {
         key: 'birthday',
-        label: 'Chapter V',
+        label: 'Chapter IV',
         title: '彤 · 芳华',
         render: (onComplete: () => void) => <Birthday onComplete={onComplete} />,
       },

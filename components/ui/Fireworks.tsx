@@ -34,7 +34,7 @@ type Rocket = {
   puff: number; // 拖尾计时
 };
 
-const MAX_PARTICLES = 1400;
+const MAX_PARTICLES = 420;
 const TWO_PI = Math.PI * 2;
 
 /**
@@ -134,12 +134,12 @@ export default function Fireworks({
       }
       const n =
         kind === 'heart'
-          ? 120
-          : kind === 'willow'
-          ? 70
-          : kind === 'ring'
           ? 64
-          : 80 + ((Math.random() * 40) | 0);
+          : kind === 'willow'
+          ? 40
+          : kind === 'ring'
+          ? 36
+          : 44 + ((Math.random() * 20) | 0);
 
       // 爱心礼花锁定“彤红”专属配色；其余用来袭色相
       const heartHue = TONG_HUES[(Math.random() * TONG_HUES.length) | 0];
@@ -251,7 +251,7 @@ export default function Fireworks({
 
     // 常驻余烬：底部随机升起的暖色微光
     const spawnEmber = () => {
-      if (embers.length > 90) return;
+      if (embers.length > 32) return;
       embers.push({
         x: Math.random() * w,
         y: h + 6,
@@ -315,28 +315,23 @@ export default function Fireworks({
       // 发光叠加模式绘制所有光点
       ctx.globalCompositeOperation = 'lighter';
 
-      // 触发庆典（爱心齐放）
+      // 触发庆典（一发爱心礼花，足矣）
       if (celebrateRef.current) {
         celebrateRef.current = false;
         launch('heart', w * 0.5);
-        setTimeout(() => launch('peony'), 260);
-        setTimeout(() => launch('willow'), 520);
-        setTimeout(() => launch('ring'), 780);
       }
 
-      // 常规自动发射
+      // 常规自动发射 —— 每次只放一发，绝不连发
       if (stateRef.current.active && !reduce) {
-        const gap = 1500 / stateRef.current.intensity;
+        const gap = 2600 / stateRef.current.intensity;
         if (t - lastLaunch > gap) {
           launch(pick<Kind>(['peony', 'willow', 'ring', 'crackle']));
-          if (Math.random() < 0.3)
-            setTimeout(() => launch(pick<Kind>(['peony', 'ring'])), 220);
           lastLaunch = t;
         }
       }
 
       // 余烬持续生成（reduced-motion 下也保留，但更稀疏）
-      if (t - lastEmber > (reduce ? 900 : 260)) {
+      if (t - lastEmber > (reduce ? 1400 : 620)) {
         spawnEmber();
         lastEmber = t;
       }

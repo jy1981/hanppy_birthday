@@ -81,12 +81,10 @@ export default function CinemaFrame() {
       />
 
       {/* 顶部暖色 halation 辉光 — 像放映机的一束光 */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0.5, 0.75, 0.55, 0.7] }}
-        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+      <div
         className="absolute left-1/2 top-0 h-[38%] w-[120%] -translate-x-1/2"
         style={{
+          opacity: 0.65,
           background:
             'radial-gradient(ellipse at 50% 0%, rgba(212,166,86,0.10) 0%, rgba(212,166,86,0.04) 40%, transparent 70%)',
           filter: 'blur(30px)',
@@ -94,10 +92,10 @@ export default function CinemaFrame() {
       />
 
       {/* 放映机光束里的浮动光尘 */}
-      <DustMotes count={18} />
+      <DustMotes count={8} />
 
-      {/* 贯穿全片的动态胶片颗粒 */}
-      <FilmGrain opacity={0.05} animate className="motion-safe:opacity-100 motion-reduce:opacity-[0.03]" />
+      {/* 贯穿全片的胶片颗粒 */}
+      <FilmGrain opacity={0.05} className="motion-safe:opacity-100 motion-reduce:opacity-[0.03]" />
     </div>
   );
 }

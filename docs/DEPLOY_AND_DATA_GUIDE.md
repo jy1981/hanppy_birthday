@@ -1,6 +1,11 @@
 # Web 项目发布与数据访问指南
 
-这份文档用于把一个 Next.js/React Web 项目发布到 Vercel，并连接 Supabase Postgres 存储数据。适合游戏排行榜、用户反馈、表单提交、轻量业务记录等场景。
+> **当前正式线上：Netlify** → https://my-tongtong.netlify.app （国内不用翻墙可直连）
+> **日常更新只需 `git push` 到 `main`，Netlify 自动构建上线，约 1 分钟。**
+> 完整 Netlify 部署与快速更新说明见下方 **第一(七)节：国内访问不稳：已迁移到 Netlify**。
+> 下面的 Vercel 章节是早期部署记录，Vercel 站点保留作备用/对照，国内访问不稳，不再作为主线。
+
+这份文档用于把一个 Next.js/React Web 项目发布到线上（早期用 Vercel，现已迁到 Netlify），并连接 Supabase Postgres 存储数据。适合游戏排行榜、用户反馈、表单提交、轻量业务记录等场景。
 
 ## 推荐架构
 
@@ -285,6 +290,99 @@ npx --yes --registry=https://registry.npmjs.org vercel@latest inspect https://my
 - Vercel Dashboard 里 `my-tongtong -> Settings -> Deployment Protection` 是否还有团队级保护或项目级保护。
 - Vercel Dashboard 里 `my-tongtong -> Deployments -> Latest Deployment` 的 Functions / Output 是否能看到 `index` 和 `/api/wish`。
 - 如果 Dashboard 里也 404，建议删除 `my_tongtong` 和 `my-tongtong` 两个项目，直接从 GitHub 仓库 `jy1981/hanppy_birthday` 重新 Import Project，而不是 CLI 手工 `project add`。
+
+### 7. 国内访问不稳：已迁移到 Netlify（当前正式线上）
+
+`*.vercel.app` 在国内经常被 DNS 污染、边缘节点也不稳定，不翻墙容易打不开。原计划迁 Zeabur，但 Zeabur 自 2026-03-15 起对新项目取消了免费共享集群（现在必须先买 VPS），所以最终改用 **Netlify**：对 Next.js（App Router + API Routes + SSR）原生支持、GitHub 一键部署、真免费、无需买服务器。
+
+**当前正式线上地址（国内实测可直连、不用翻墙）：**
+
+```text
+https://my-tongtong.netlify.app
+```
+
+- Netlify 项目名：`my-tongtong`
+- 团队：`jyan`（账号 yj_3000@163.com）
+- 来源仓库：`github.com/jy1981/hanppy_birthday`，分支 `main`
+- 运行时：Next.js Runtime（Netlify 自动识别，无需写 Dockerfile）
+- Vercel 项目 `my-tongtong.vercel.app` 保留作为备用/对照，不影响 Netlify。
+
+#### 7.1 首次部署做过的事（存档，重装不用重复看）
+
+1. https://app.netlify.com 用 GitHub 登录 → `Add new project` / `Import an existing project` → 选仓库 `jy1981/hanppy_birthday`。
+2. Netlify 自动识别 Next.js，构建配置保持默认即可：
+   - Build command：`npm run build`
+   - Publish directory：`.next`
+   - Branch to deploy：`main`
+3. 展开 `Add environment variables` → `Import from a .env file`，一次性粘入下面 8 行（见 7.2）。
+4. 点 `Deploy`。
+
+#### 7.2 环境变量（Netlify 需要的完整 8 项）
+
+在 Netlify `Project configuration -> Environment variables` 里配置。值统一以本机 `.env.local` 为准（**不要提交到 Git**）。注意最后一项 `SECRETS_SCAN_ENABLED`，是 Vercel 没有、Netlify 特有的：
+
+```text
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+WISH_STORAGE_MODE=supabase
+SUPABASE_WISH_TABLE=birthday_wishes
+SUPABASE_WISH_BUCKET=birthday-wishes
+WISH_ADMIN_PASSWORD
+SECRETS_SCAN_ENABLED=false
+```
+
+**为什么必须加 `SECRETS_SCAN_ENABLED=false`（这是首次部署踩的唯一坑）：**
+
+Netlify 构建时会做"密钥扫描"，把出现在构建产物里的环境变量值当成"泄露的密钥"而让构建失败（exit code 2，报 `Exposed secrets detected`）。但本项目里：
+
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` 按 Next.js 设计**本来就要打进前端**，出现在产物里是正常的；
+- `WISH_STORAGE_MODE=supabase`、`SUPABASE_WISH_TABLE=birthday_wishes`、`SUPABASE_WISH_BUCKET=birthday-wishes` 这些只是**普通配置字符串**（代码里还有同名默认值），被扫描器误判。
+
+真正敏感的 `SUPABASE_SERVICE_ROLE_KEY` 和 `WISH_ADMIN_PASSWORD` 只在服务端使用，不会进前端 bundle。所以直接用 `SECRETS_SCAN_ENABLED=false` 关掉这个过度敏感的扫描是安全的。（若想更精细，也可改用 `SECRETS_SCAN_OMIT_KEYS` 只豁免特定 key，但本项目直接整体关闭更省事。）
+
+#### 7.3 以后如何"快速更新部署"（日常最常用，记这一条就够）
+
+Netlify 已经和 GitHub `main` 分支绑定了自动部署，所以更新代码只要照常推送即可：
+
+```bash
+git status
+git add <改动的文件>
+git commit -m "你的提交说明"
+git push
+```
+
+`git push` 到 `main` 之后，Netlify 会自动拉取、构建、上线，约 1 分钟。**不需要动 Netlify 网页，也不需要跑任何 Netlify 命令。**
+
+其它常见操作（都在 Netlify 网页上点）：
+
+- **看部署进度/日志**：`Deploys` 页 → 点最新一条部署 → 看 `Deploy log`。绿色 `Published` 即成功。
+- **不改代码、只想重新构建一次**（比如改了环境变量后要生效）：`Deploys` 页右上 `Trigger deploy` → `Deploy project`（或 `Deploy project without cache` 做干净重建）。
+- **改环境变量**：`Project configuration -> Environment variables` 改完后，务必按上一条 `Trigger deploy` 重新部署一次才会生效。
+- **回滚到上一个好版本**：`Deploys` 页找到之前成功的那条 → `Publish deploy`。
+
+#### 7.4 每次上线后的自检命令
+
+把域名保持为 `my-tongtong.netlify.app` 即可直接用：
+
+```bash
+# 1. 首页应为 200
+curl -s -o /dev/null -w "%{http_code}\n" -L https://my-tongtong.netlify.app/
+
+# 2. 应返回 "storageMode":"supabase"（确认连的是云端库，不是本地降级）
+curl -sS https://my-tongtong.netlify.app/api/wish
+
+# 3. 后台错误密码应为 403（确认鉴权正常）
+curl -s -o /dev/null -w "%{http_code}\n" -X POST https://my-tongtong.netlify.app/api/wish/admin \
+  -H "Content-Type: application/json" -d '{"password":"错误密码"}'
+```
+
+当前实测结果（2026-07 首次上线）：首页 `200`、`/api/wish` 返回 `storageMode":"supabase"`、后台错误密码 `403`，全部通过。
+
+注意：
+
+- 录音播放走的是 Supabase 签名 URL（`*.supabase.co`），由用户浏览器直连，与托管平台无关。若国内播放慢属于 Supabase 链路问题，可后续单独优化（如加国内 CDN 中转）。
+- 想更彻底稳定，可在 Netlify `Domain management` 绑自定义域名 + 国内 CDN（需备案）。目前 `*.netlify.app` 实测已可直连，暂不需要。
 
 ## 二、申请 Supabase 数据库
 
