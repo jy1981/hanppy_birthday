@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Phase = 'check' | 'record' | 'locked' | 'unlock' | 'play' | 'error';
+type Phase = 'check' | 'record' | 'locked' | 'unlock' | 'play' | 'upload' | 'error';
 
 export default function WishRecorder({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>('check');
@@ -13,12 +13,18 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
+  const [levels, setLevels] = useState<number[]>(() => createIdleLevels());
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const analyserDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const discardRecordingRef = useRef(false);
 
   // 初始检查是否已有录音
   useEffect(() => {
@@ -34,19 +40,99 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
       .catch(() => setPhase('record'));
   }, []);
 
-  const cleanup = useCallback(() => {
+  const stopAudioAnalysis = useCallback((resetLevels = true) => {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    analyserRef.current?.disconnect();
+    analyserRef.current = null;
+    analyserDataRef.current = null;
+
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+
+    if (resetLevels) {
+      setLevels(createIdleLevels());
+    }
+  }, []);
+
+  const startAudioAnalysis = useCallback(
+    async (stream: MediaStream) => {
+      const Win = window as Window & { webkitAudioContext?: typeof AudioContext };
+      const AudioContextCtor = window.AudioContext ?? Win.webkitAudioContext;
+
+      if (!AudioContextCtor) {
+        return;
+      }
+
+      stopAudioAnalysis(false);
+
+      const context = new AudioContextCtor();
+      const source = context.createMediaStreamSource(stream);
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.82;
+      source.connect(analyser);
+
+      audioContextRef.current = context;
+      analyserRef.current = analyser;
+      analyserDataRef.current = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
+
+      const tick = () => {
+        const activeAnalyser = analyserRef.current;
+        const activeData = analyserDataRef.current;
+
+        if (!activeAnalyser || !activeData) {
+          return;
+        }
+
+        activeAnalyser.getByteFrequencyData(activeData);
+        const bucketSize = Math.max(1, Math.floor(activeData.length / 18));
+        const nextLevels = Array.from({ length: 18 }, (_, index) => {
+          const start = index * bucketSize;
+          const end = Math.min(activeData.length, start + bucketSize);
+          let total = 0;
+
+          for (let i = start; i < end; i += 1) {
+            total += activeData[i];
+          }
+
+          const average = total / Math.max(1, end - start);
+          return Math.max(0.12, Math.min(1, average / 160));
+        });
+
+        setLevels(nextLevels);
+        rafRef.current = requestAnimationFrame(tick);
+      };
+
+      void context.resume().catch(() => {});
+      tick();
+    },
+    [stopAudioAnalysis],
+  );
+
+  const cleanup = useCallback((discardRecording = true) => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    stopAudioAnalysis(true);
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-  }, []);
 
-  useEffect(() => cleanup, [cleanup]);
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      discardRecordingRef.current = discardRecording;
+      recorder.stop();
+    }
+    setIsRecording(false);
+  }, [stopAudioAnalysis]);
+
+  useEffect(() => () => cleanup(true), [cleanup]);
 
   const startRecording = async () => {
     setError('');
@@ -60,6 +146,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      discardRecordingRef.current = false;
 
       // iOS Safari 不支持 webm，优先 mp4
       const mimeType = MediaRecorder.isTypeSupported('audio/webm')
@@ -78,12 +165,20 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
       };
 
       mr.onstop = async () => {
+        if (discardRecordingRef.current) {
+          discardRecordingRef.current = false;
+          chunksRef.current = [];
+          return;
+        }
+
         const type = mr.mimeType || 'audio/webm';
         const blob = new Blob(chunksRef.current, { type });
+        setPhase('upload');
         await uploadRecording(blob);
       };
 
       mr.start();
+      await startAudioAnalysis(stream);
       setIsRecording(true);
       setRecordTime(0);
       timerRef.current = setInterval(() => {
@@ -97,6 +192,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
       }, 1000);
     } catch (e) {
       const err = e as DOMException;
+      stopAudioAnalysis(true);
       if (err?.name === 'NotAllowedError') {
         setError('麦克风权限被拒绝。iOS 请到 设置 → Safari → 麦克风 开启权限后重试');
       } else if (err?.name === 'NotFoundError') {
@@ -114,11 +210,15 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
+    stopAudioAnalysis(false);
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state === 'recording') {
+      discardRecordingRef.current = false;
+      recorder.stop();
     }
     setIsRecording(false);
     streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
   };
 
   const uploadRecording = async (blob: Blob) => {
@@ -139,10 +239,12 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
       } else {
         setError(data.error || '上传失败');
         setPhase('record');
+        setLevels(createIdleLevels());
       }
     } catch {
       setError('上传失败，请重试');
       setPhase('record');
+      setLevels(createIdleLevels());
     }
   };
 
@@ -242,32 +344,36 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
 
               {/* 录音按钮 */}
               {!isRecording ? (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    if (!password) {
-                      setError('请先设置密码');
-                      return;
-                    }
-                    if (confirmPw && confirmPw !== password) {
-                      setError('两次密码不一致');
-                      return;
-                    }
-                    setError('');
-                    startRecording();
-                  }}
-                  className="w-16 h-16 rounded-full flex items-center justify-center"
-                  style={{
-                    background: 'radial-gradient(circle, rgba(176,58,72,0.8) 0%, rgba(140,40,50,0.6) 100%)',
-                    border: '2px solid rgba(241,224,176,0.3)',
-                    boxShadow: '0 0 20px rgba(176,58,72,0.3)',
-                  }}
-                  aria-label="开始录音"
-                >
-                  <span className="w-5 h-5 rounded-full bg-[#F1E0B0]" />
-                </motion.button>
+                <>
+                  <VoiceMeter levels={levels} active={false} />
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      if (!password) {
+                        setError('请先设置密码');
+                        return;
+                      }
+                      if (confirmPw && confirmPw !== password) {
+                        setError('两次密码不一致');
+                        return;
+                      }
+                      setError('');
+                      startRecording();
+                    }}
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{
+                      background: 'radial-gradient(circle, rgba(176,58,72,0.8) 0%, rgba(140,40,50,0.6) 100%)',
+                      border: '2px solid rgba(241,224,176,0.3)',
+                      boxShadow: '0 0 20px rgba(176,58,72,0.3)',
+                    }}
+                    aria-label="开始录音"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-[#F1E0B0]" />
+                  </motion.button>
+                </>
               ) : (
                 <div className="flex flex-col items-center gap-3">
+                  <VoiceMeter levels={levels} active />
                   <motion.div
                     animate={{ scale: [1, 1.15, 1] }}
                     transition={{ duration: 1, repeat: Infinity }}
@@ -290,6 +396,22 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {phase === 'upload' && (
+            <div className="w-full flex flex-col items-center gap-4 py-4">
+              <VoiceMeter levels={levels} active />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}
+                className="w-10 h-10 rounded-full border-2 border-[#D4A656]/20 border-t-[#F1E0B0]"
+              />
+              <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
+                正在封存这段声音
+                <br />
+                <span className="text-[#F3EBDD]/40 text-xs">上传完成后会自动进入试听</span>
+              </p>
             </div>
           )}
 
@@ -359,7 +481,10 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
 
           {/* 关闭按钮 */}
           <button
-            onClick={onClose}
+            onClick={() => {
+              cleanup(true);
+              onClose();
+            }}
             className="font-song text-[#F3EBDD]/40 text-xs tracking-[0.2em] mt-2"
           >
             关闭
@@ -368,4 +493,46 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
       </motion.div>
     </AnimatePresence>
   );
+}
+
+function VoiceMeter({ levels, active }: { levels: number[]; active: boolean }) {
+  return (
+    <div className="relative flex items-end justify-center gap-1.5 h-16 w-full max-w-[240px]">
+      <div
+        className="absolute inset-x-8 bottom-0 top-6 rounded-full blur-2xl"
+        style={{
+          background: active
+            ? 'radial-gradient(circle, rgba(176,58,72,0.28) 0%, rgba(176,58,72,0) 72%)'
+            : 'radial-gradient(circle, rgba(212,166,86,0.12) 0%, rgba(212,166,86,0) 72%)',
+        }}
+      />
+      {levels.map((level, index) => (
+        <motion.span
+          key={index}
+          animate={{
+            height: `${Math.round(10 + level * 38)}px`,
+            opacity: active ? 0.95 : 0.45,
+            scaleY: active ? [0.94, 1.06, 1] : 1,
+          }}
+          transition={{
+            duration: active ? 0.28 : 0.4,
+            ease: 'easeOut',
+            delay: index * 0.01,
+          }}
+          className="w-1.5 rounded-full"
+          style={{
+            background:
+              index % 3 === 0
+                ? 'linear-gradient(180deg, rgba(241,224,176,0.95) 0%, rgba(212,166,86,0.88) 100%)'
+                : 'linear-gradient(180deg, rgba(212,166,86,0.86) 0%, rgba(176,58,72,0.75) 100%)',
+            boxShadow: active ? '0 0 10px rgba(212,166,86,0.2)' : 'none',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function createIdleLevels() {
+  return Array.from({ length: 18 }, (_, index) => 0.16 + ((index + 2) % 5) * 0.035);
 }

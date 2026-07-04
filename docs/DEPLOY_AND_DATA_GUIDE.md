@@ -1,0 +1,494 @@
+# Web 项目发布与数据访问指南
+
+这份文档用于把一个 Next.js/React Web 项目发布到 Vercel，并连接 Supabase Postgres 存储数据。适合游戏排行榜、用户反馈、表单提交、轻量业务记录等场景。
+
+## 推荐架构
+
+```text
+浏览器
+  -> Vercel 页面 / CDN
+  -> Next.js API Route
+  -> Supabase Postgres / Storage
+```
+
+原则：
+
+- Vercel 负责部署页面和 API。
+- Supabase 负责数据库和录音文件存储。
+- 前端不要把敏感密钥写进代码。
+- 写数据优先走 `/api/*`，便于校验、防刷和后续换库。
+
+## 一、发布页面到 Vercel
+
+### 1. 准备代码仓库
+
+把项目推到 GitHub。建议先确认本地能通过：
+
+```bash
+npm install
+npm run typecheck
+npm run build
+```
+
+常见 `package.json` 脚本：
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  }
+}
+```
+
+### 2. 在 Vercel 导入项目
+
+1. 打开 https://vercel.com
+2. 使用 GitHub 登录
+3. 点击 `Add New...` -> `Project`
+4. 选择你的 GitHub 仓库
+5. Framework Preset 选择 `Next.js`
+6. Build Command 通常保持 `npm run build`
+7. Output Directory 通常留空
+8. 点击 `Deploy`
+
+部署完成后，Vercel 会给一个类似下面的访问地址：
+
+```text
+https://your-project.vercel.app
+```
+
+如果 Vercel 允许选择 Project Name，彤彤生日站建议使用：
+
+```text
+my_tontong
+```
+
+如果下划线不被接受，可以改成：
+
+```text
+my-tontong
+```
+
+### 3. 后续更新
+
+之后每次 push 到 GitHub 默认分支，Vercel 会自动重新部署。
+
+如果有预览分支，Vercel 会给每个 PR/分支生成 Preview URL。
+
+## 二、申请 Supabase 数据库
+
+### 1. 创建项目
+
+1. 打开 https://supabase.com
+2. 登录后点击 `New project`
+3. 填项目名和数据库密码
+4. Region 尽量选择和 Vercel 用户访问区域接近的位置
+5. 等待项目初始化完成
+
+### 2. 获取连接信息
+
+进入 Supabase 项目：
+
+```text
+Project Settings -> API
+```
+
+需要这几个值：
+
+```text
+Project URL
+anon public key
+service_role key
+```
+
+注意：
+
+- `anon public key` 可以用于浏览器端，但仍要配合 RLS 策略。
+- `service_role key` 只能放服务端环境变量，绝不能写进前端代码。
+
+## 三、建表示例
+
+比如要存游戏分数，可以在 Supabase 的 `SQL Editor` 执行：
+
+```sql
+create table if not exists game_scores (
+  id uuid primary key default gen_random_uuid(),
+  game text not null,
+  player_name text not null,
+  score integer not null,
+  duration_seconds integer,
+  meta jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists game_scores_game_score_idx
+  on game_scores (game, score desc, created_at desc);
+```
+
+如果只是测试，可以先不开复杂权限，数据访问全部走服务端 API。正式上线前建议开启 RLS 并按业务收紧策略。
+
+### 2026 彤彤生日录音表
+
+当前项目的录音愿望功能走 `/api/wish`，录音文件放 Supabase Storage，密码哈希和文件元数据放 Postgres。前端不会接触 `service_role key`。
+
+在 Supabase `SQL Editor` 执行：
+
+```sql
+create table if not exists birthday_wishes (
+  id uuid primary key default gen_random_uuid(),
+  password_hash text not null,
+  storage_path text not null unique,
+  original_filename text not null,
+  mime_type text not null,
+  file_size integer not null check (file_size > 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists birthday_wishes_created_at_idx
+  on birthday_wishes (created_at desc);
+
+alter table birthday_wishes enable row level security;
+```
+
+录音表不需要开放匿名读写，因为项目使用服务端 API 和 `SUPABASE_SERVICE_ROLE_KEY` 访问。
+
+再到 `Storage` 创建一个私有 bucket：
+
+```text
+birthday-wishes
+```
+
+注意保持 bucket 为 private。播放录音时，服务端会在密码验证通过后生成 30 分钟有效的签名 URL。
+
+## 四、项目里安装 Supabase SDK
+
+```bash
+npm install @supabase/supabase-js
+```
+
+## 五、配置环境变量
+
+本地创建 `.env.local`：
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=你的_anon_public_key
+SUPABASE_SERVICE_ROLE_KEY=你的_service_role_key
+WISH_STORAGE_MODE=supabase
+SUPABASE_WISH_TABLE=birthday_wishes
+SUPABASE_WISH_BUCKET=birthday-wishes
+```
+
+在 Vercel 后台也要配置同样的变量：
+
+```text
+Vercel Project -> Settings -> Environment Variables
+```
+
+建议：
+
+- `NEXT_PUBLIC_SUPABASE_URL`：Production / Preview / Development 都填。
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`：Production / Preview / Development 都填。
+- `SUPABASE_SERVICE_ROLE_KEY`：只给服务端使用，不要在浏览器代码里引用。
+- `WISH_STORAGE_MODE`：线上填 `supabase`，本地没配 Supabase 时可以不填，会回退到本地 `public/wishes`。
+- `SUPABASE_WISH_TABLE` / `SUPABASE_WISH_BUCKET`：如果沿用默认名，可以不填；为了上线排查清楚，建议显式配置。
+
+## 六、推荐方式：通过 API 访问数据
+
+这种方式更稳，适合排行榜、表单、订单、评论、用户行为记录。
+
+### 1. 服务端 Supabase Client
+
+新建：
+
+```text
+src/lib/supabase/server.ts
+```
+
+```ts
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceRoleKey) {
+  throw new Error("Missing Supabase server environment variables.");
+}
+
+export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+  auth: {
+    persistSession: false,
+  },
+});
+```
+
+### 2. 写入分数 API
+
+新建：
+
+```text
+src/app/api/scores/route.ts
+```
+
+```ts
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
+
+function cleanName(value: unknown): string {
+  if (typeof value !== "string") return "anonymous";
+  return value.trim().replace(/\s+/g, " ").slice(0, 32) || "anonymous";
+}
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => null);
+
+  const game = typeof body?.game === "string" ? body.game.slice(0, 40) : "";
+  const playerName = cleanName(body?.playerName);
+  const score = Number(body?.score);
+  const durationSeconds =
+    body?.durationSeconds == null ? null : Number(body.durationSeconds);
+
+  if (!game || !Number.isInteger(score) || score < 0) {
+    return NextResponse.json({ error: "Invalid score payload." }, { status: 400 });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("game_scores")
+    .insert({
+      game,
+      player_name: playerName,
+      score,
+      duration_seconds:
+        Number.isFinite(durationSeconds) && durationSeconds >= 0
+          ? Math.round(durationSeconds)
+          : null,
+    })
+    .select("id, game, player_name, score, duration_seconds, created_at")
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: "Failed to save score." }, { status: 500 });
+  }
+
+  return NextResponse.json({ score: data });
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const game = searchParams.get("game") ?? "";
+  const limit = Math.min(Number(searchParams.get("limit") ?? 10), 50);
+
+  if (!game) {
+    return NextResponse.json({ error: "Missing game." }, { status: 400 });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("game_scores")
+    .select("id, game, player_name, score, duration_seconds, created_at")
+    .eq("game", game)
+    .order("score", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    return NextResponse.json({ error: "Failed to load scores." }, { status: 500 });
+  }
+
+  return NextResponse.json({ scores: data });
+}
+```
+
+### 3. 前端提交数据
+
+```ts
+async function submitScore() {
+  const response = await fetch("/api/scores", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      game: "minesweeper",
+      playerName: "test",
+      score: 1200,
+      durationSeconds: 45,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Submit score failed.");
+  }
+
+  return response.json();
+}
+```
+
+### 4. 前端读取排行榜
+
+```ts
+async function loadScores() {
+  const response = await fetch("/api/scores?game=minesweeper&limit=10");
+
+  if (!response.ok) {
+    throw new Error("Load scores failed.");
+  }
+
+  const result = await response.json();
+  return result.scores;
+}
+```
+
+## 七、最快方式：前端直连 Supabase
+
+这种方式适合原型验证。正式项目更推荐 API 中转。
+
+```text
+src/lib/supabase/client.ts
+```
+
+```ts
+import { createClient } from "@supabase/supabase-js";
+
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+);
+```
+
+插入：
+
+```ts
+await supabase.from("game_scores").insert({
+  game: "minesweeper",
+  player_name: "test",
+  score: 1200,
+  duration_seconds: 45,
+});
+```
+
+读取：
+
+```ts
+const { data, error } = await supabase
+  .from("game_scores")
+  .select("*")
+  .eq("game", "minesweeper")
+  .order("score", { ascending: false })
+  .limit(10);
+```
+
+如果使用前端直连，必须配置 RLS 策略，否则要么访问被拒绝，要么数据暴露过多。
+
+## 八、RLS 基础策略
+
+如果要允许匿名用户读取排行榜、提交分数，可以这样做一个基础策略：
+
+```sql
+alter table game_scores enable row level security;
+
+create policy "Public can read scores"
+on game_scores
+for select
+to anon
+using (true);
+
+create policy "Public can insert scores"
+on game_scores
+for insert
+to anon
+with check (
+  game <> ''
+  and player_name <> ''
+  and score >= 0
+);
+```
+
+注意：匿名 insert 容易被刷。正式项目建议写入走 API，并在 API 里做限流、验证码、签名或登录校验。
+
+## 九、本地测试流程
+
+1. 启动开发服务：
+
+```bash
+npm run dev
+```
+
+2. 打开：
+
+```text
+http://localhost:3000
+```
+
+3. 调用 API 测试写入：
+
+```bash
+curl -X POST http://localhost:3000/api/scores \
+  -H "Content-Type: application/json" \
+  -d '{"game":"minesweeper","playerName":"local","score":100,"durationSeconds":30}'
+```
+
+4. 测试读取：
+
+```bash
+curl "http://localhost:3000/api/scores?game=minesweeper&limit=10"
+```
+
+5. 去 Supabase 表编辑器确认数据是否写入。
+
+### 录音愿望测试
+
+本地如果已经配置 Supabase 环境变量：
+
+```bash
+npm run dev
+```
+
+打开页面进入终章录音。录制完成后检查：
+
+- `Storage -> birthday-wishes` 里有 `wishes/YYYY-MM-DD/*.webm` 或 `.m4a` 文件。
+- `Table Editor -> birthday_wishes` 有一条元数据记录。
+- 关闭弹窗后再次打开，页面应进入密码解锁态。
+
+如果没有配置 Supabase，本地会使用 `public/wishes` 做开发回退；这个模式只适合本地验证，不适合 Vercel 上线。
+
+## 十、上线检查表
+
+- `npm run typecheck` 通过。
+- `npm run build` 通过。
+- Vercel 环境变量已配置。
+- Supabase 表已创建。
+- Supabase `birthday-wishes` 私有 bucket 已创建。
+- 如果前端直连，RLS 策略已配置。
+- 如果 API 中转，`service_role key` 只存在 Vercel 环境变量里。
+- 线上 `WISH_STORAGE_MODE=supabase`。
+- 不要把 `.env.local` 提交到 Git。
+- 不要在前端代码里使用 `SUPABASE_SERVICE_ROLE_KEY`。
+- 写库频率要低，只在提交表单、游戏结束、保存进度等关键节点写入。
+
+## 十一、常见问题
+
+### Vercel 部署成功，但接口报 500
+
+优先检查：
+
+- Vercel 是否配置了环境变量。
+- 环境变量是否选择了 Production。
+- Supabase 表名和字段名是否一致。
+- `SUPABASE_SERVICE_ROLE_KEY` 是否填错。
+
+### 本地能访问，线上不能访问
+
+通常是 Vercel 环境变量没配，或者只配到了 Preview/Development，没有配到 Production。
+
+### 数据写入很慢
+
+检查：
+
+- Vercel 和 Supabase region 是否距离过远。
+- 是否每次点击都写数据库。
+- 是否一次查询返回了过多数据。
+
+### 要不要把数据存在 Vercel 项目文件里
+
+不要。Vercel 的运行环境不适合持久化写文件。持久数据应该放数据库或对象存储。

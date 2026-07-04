@@ -6,9 +6,11 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.53.0",
     "framer-motion": "^11.3.19",
     "gsap": "^3.12.5",
     "howler": "^2.2.4",
