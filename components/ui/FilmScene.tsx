@@ -78,6 +78,12 @@ export default function FilmScene({
             transition={{ duration: CROSSFADE / 1000, ease: [0.22, 1, 0.36, 1] }}
             className="absolute inset-0 z-[3] flex flex-col items-center justify-center gap-7 px-8"
           >
+            <motion.span
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+              className="hairline-gold w-12"
+            />
             <div className="scene-marker font-en">SCENE {scene}</div>
             <motion.h2
               initial={{ letterSpacing: '0.65em', opacity: 0 }}
@@ -187,11 +193,16 @@ const PhotoFrame = forwardRef<HTMLDivElement, {
       transition={{ duration: CROSSFADE / 1000, ease: [0.22, 1, 0.36, 1] }}
       className="absolute inset-0 z-[2]"
     >
-      {/* 照片 + 缓慢推近 + 交替平移 */}
+      {/* 照片 + 缓慢推近 + 交替平移 + 入场对焦（rack focus 落定） */}
       <motion.div
-        initial={{ scale: 1.14, x: dir * 14, y: -8 }}
-        animate={{ scale: 1.02, x: dir * -14, y: 6 }}
-        transition={{ duration: duration / 1000, ease: 'linear' }}
+        initial={{ scale: 1.14, x: dir * 14, y: -8, filter: 'blur(12px)' }}
+        animate={{ scale: 1.02, x: dir * -14, y: 6, filter: 'blur(0px)' }}
+        transition={{
+          scale: { duration: duration / 1000, ease: 'linear' },
+          x: { duration: duration / 1000, ease: 'linear' },
+          y: { duration: duration / 1000, ease: 'linear' },
+          filter: { duration: 1.2, ease: [0.22, 1, 0.36, 1] },
+        }}
         className="absolute inset-0"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -212,6 +223,12 @@ const PhotoFrame = forwardRef<HTMLDivElement, {
           transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="absolute inset-x-0 bottom-[10vh] z-[6] flex flex-col items-center gap-3 px-10 text-center"
         >
+          <motion.span
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ duration: 1.1, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="hairline-gold w-10"
+          />
           <p className="font-kai film-caption text-lg sm:text-xl">
             {photo.caption}
           </p>

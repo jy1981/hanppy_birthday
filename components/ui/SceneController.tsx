@@ -93,6 +93,15 @@ export default function SceneController({
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
+      {/* 开幕暗转 — 放映机点亮的一瞬，从纯黑淡入，衔接入场券与正片 */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 0 }}
+        transition={{ duration: 1.1, ease, delay: 0.15 }}
+        className="pointer-events-none fixed inset-0 z-[130] bg-black motion-reduce:hidden"
+      />
+
       {/* 场景容器 */}
       <div className="relative w-full h-full gate-weave">
         <AnimatePresence mode="wait" custom={direction}>

@@ -99,7 +99,7 @@ export default function Birthday({ onComplete }: { onComplete?: () => void }) {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.4, delay: 0.4 }}
-            className="relative px-7 py-10 bg-black/35 backdrop-blur-md rounded-sm"
+            className="relative px-7 py-10 bg-black/35 backdrop-blur-md rounded-sm film-sheen"
             style={{
               border: '1px solid rgba(201,163,104,0.22)',
               boxShadow: '0 24px 70px -18px rgba(0,0,0,0.7)',

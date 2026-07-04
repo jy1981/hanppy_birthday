@@ -162,26 +162,51 @@ function Candle({ lit, onClick }: { lit: boolean; onClick: () => void }) {
         }}
       />
 
-      {/* 火焰区域 — 精确对齐烛芯顶部 */}
+      {/* 火焰区域 — 以烛芯中心为锚点；所有层用负 margin 居中，
+          避免 framer-motion 的 scale 动画覆盖 translate 造成水平偏移 */}
       <AnimatePresence>
         {lit && (
           <motion.div
             key="flame-zone"
-            className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-            style={{ bottom: '115px' }}
+            className="absolute pointer-events-none"
+            style={{ left: '50%', bottom: '115px' }}
             exit={{ opacity: 0 }}
           >
+            {/* 呼吸光晕 — 最外层大范围柔光，明显的呼吸脉动 */}
+            <motion.span
+              key="glow-breath"
+              initial={{ opacity: 0, scale: 0.4 }}
+              animate={{ opacity: [0.38, 0.72, 0.46, 0.66, 0.38], scale: [1, 1.24, 1.02, 1.16, 1] }}
+              exit={{ opacity: 0, scale: 0.3 }}
+              transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute rounded-full"
+              style={{
+                left: 0,
+                bottom: -49,
+                marginLeft: -63,
+                width: 126,
+                height: 126,
+                background:
+                  'radial-gradient(circle, rgba(255,190,95,0.30) 0%, rgba(255,150,60,0.12) 38%, rgba(255,120,40,0.04) 60%, transparent 76%)',
+                filter: 'blur(11px)',
+              }}
+            />
             {/* 大光晕 — 呼吸脉动 */}
             <motion.span
               key="glow-outer"
               initial={{ opacity: 0, scale: 0.3 }}
-              animate={{ opacity: [0.85, 1, 0.9, 1, 0.85], scale: [1, 1.08, 1, 1.05, 1] }}
+              animate={{ opacity: [0.8, 1, 0.86, 0.98, 0.8], scale: [1, 1.1, 0.98, 1.06, 1] }}
               exit={{ opacity: 0, scale: 0.2 }}
               transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-20 h-20 rounded-full"
+              className="absolute rounded-full"
               style={{
+                left: 0,
+                bottom: -27,
+                marginLeft: -40,
+                width: 80,
+                height: 80,
                 background:
-                  'radial-gradient(circle, rgba(255,180,80,0.22) 0%, rgba(255,130,40,0.07) 40%, transparent 70%)',
+                  'radial-gradient(circle, rgba(255,180,80,0.26) 0%, rgba(255,130,40,0.09) 42%, transparent 70%)',
                 filter: 'blur(7px)',
               }}
             />
@@ -189,13 +214,18 @@ function Candle({ lit, onClick }: { lit: boolean; onClick: () => void }) {
             <motion.span
               key="glow-mid"
               initial={{ opacity: 0, scale: 0.3 }}
-              animate={{ opacity: [0.9, 1, 0.92, 1, 0.9], scale: [1, 1.06, 0.98, 1.04, 1] }}
+              animate={{ opacity: [0.9, 1, 0.92, 1, 0.9], scale: [1, 1.08, 0.97, 1.05, 1] }}
               exit={{ opacity: 0, scale: 0.2 }}
               transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-9 h-11 rounded-full"
+              className="absolute rounded-full"
               style={{
+                left: 0,
+                bottom: -9,
+                marginLeft: -18,
+                width: 36,
+                height: 44,
                 background:
-                  'radial-gradient(ellipse at 50% 60%, rgba(255,210,110,0.34) 0%, rgba(255,150,50,0.12) 50%, transparent 80%)',
+                  'radial-gradient(ellipse at 50% 60%, rgba(255,210,110,0.38) 0%, rgba(255,150,50,0.13) 50%, transparent 80%)',
                 filter: 'blur(3px)',
               }}
             />
@@ -206,8 +236,8 @@ function Candle({ lit, onClick }: { lit: boolean; onClick: () => void }) {
               animate={{ opacity: 1, scaleY: 1 }}
               exit={{ opacity: 0, scaleY: 0.15, x: 14, rotate: 35, y: -6 }}
               transition={{ duration: 0.45, ease: 'easeOut' }}
-              className="relative"
-              style={{ width: '14px', height: '26px', marginLeft: '-7px' }}
+              className="absolute"
+              style={{ left: 0, bottom: 0, marginLeft: -7, width: '14px', height: '26px' }}
             >
               <motion.div
                 animate={{
@@ -265,8 +295,8 @@ function Candle({ lit, onClick }: { lit: boolean; onClick: () => void }) {
             {[0, 1, 2].map((i) => (
               <motion.span
                 key={`spark-${i}`}
-                className="absolute left-1/2 bottom-2 w-[2px] h-[2px] rounded-full"
-                style={{ background: 'rgba(255,200,120,0.9)' }}
+                className="absolute w-[2px] h-[2px] rounded-full"
+                style={{ left: 0, bottom: 8, marginLeft: -1, background: 'rgba(255,200,120,0.9)' }}
                 initial={{ opacity: 0, x: 0, y: 0 }}
                 animate={{
                   opacity: [0, 1, 0],

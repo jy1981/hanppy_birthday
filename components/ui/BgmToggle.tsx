@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { audio } from '@/lib/manifest';
+import { setSfxMuted, unlockAudio } from '@/lib/sfx';
 
 /**
  * 背景音乐开关。autoplay 仅当 user 已交互（entered）时尝试播放。
@@ -34,7 +35,13 @@ export default function BgmToggle({ autoplay = false }: { autoplay?: boolean }) 
       });
   }, [autoplay]);
 
+  // 音效静音状态跟随背景音乐开关：暂停音乐即静音音效
+  useEffect(() => {
+    setSfxMuted(!playing);
+  }, [playing]);
+
   const toggle = () => {
+    unlockAudio(); // 用户手势解锁音频上下文（iOS 必需）
     const a = audioRef.current;
     if (!a) return;
     if (playing) {

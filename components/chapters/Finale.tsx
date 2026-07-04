@@ -37,7 +37,7 @@ export default function Finale() {
         />
       </div>
 
-      <Fireworks active intensity={wished ? 2.5 : 1} />
+      <Fireworks active intensity={wished ? 2.5 : 1} celebrate={wished} />
 
       <div className="relative z-[3] w-full max-w-md mx-auto px-8 py-16 flex flex-col items-center text-paper text-center h-full justify-between">
         <motion.div

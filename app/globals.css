@@ -284,6 +284,34 @@ body {
   letter-spacing: 0.18em;
 }
 
+/* 丝绢高光 — 一道斜向缓慢流动的柔光扫过，用于标题卡/字幕条，增添高级质感 */
+.film-sheen {
+  position: relative;
+}
+.film-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(245, 224, 176, 0.06) 42%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(212, 166, 86, 0.06) 58%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  background-position: 200% 0;
+  mix-blend-mode: screen;
+  animation: filmSheen 9s ease-in-out infinite;
+}
+@keyframes filmSheen {
+  0% { background-position: 200% 0; }
+  55%, 100% { background-position: -80% 0; }
+}
+
 /* 放映机过片门轻微抖动 — 亚像素级 weave，模拟真实胶片放映时的画面浮动 */
 .gate-weave {
   animation: gateWeave 7s ease-in-out infinite;
@@ -329,7 +357,8 @@ body {
   .ken-burns,
   .ken-burns-2,
   .slow-breathe,
-  .gate-weave {
+  .gate-weave,
+  .film-sheen::after {
     animation: none !important;
   }
   *,
