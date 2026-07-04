@@ -100,7 +100,7 @@ npm run build
 如果要用命令行登录，可以在项目目录执行：
 
 ```bash
-npx vercel@37.14.0 login
+npx --yes --registry=https://registry.npmjs.org vercel@latest login
 ```
 
 新版 Vercel CLI 使用 Device Flow，流程是：
@@ -116,18 +116,22 @@ npx vercel@37.14.0 login
 
 - 不要批准陌生地点、陌生 IP、陌生时间发起的登录请求。
 - 旧的邮箱参数登录、`--github`、`--gitlab` 等方式已经被 Vercel 标记为废弃。
-- 当前环境里 `npx vercel@latest login` 可能会失败：
+- 当前环境默认 npm 源是 `https://bnpm.byted.org`，直接执行 `npx vercel@latest login` 可能会失败：
 
 ```text
 npm error notarget No matching version found for @vercel/container@0.0.4
 ```
 
-这是 Vercel CLI 最新版依赖解析问题，不是项目代码问题。遇到这个错误就固定使用 `npx vercel@37.14.0 ...`。
+这是内部 npm 源没有同步完整 Vercel 依赖，不是项目代码问题。遇到这个错误就临时指定官方 npm 源：
+
+```bash
+npx --yes --registry=https://registry.npmjs.org vercel@latest login
+```
 
 验证 CLI 是否登录成功：
 
 ```bash
-npx vercel@37.14.0 whoami
+npx --yes --registry=https://registry.npmjs.org vercel@latest whoami
 ```
 
 如果能输出账号名，说明 CLI 已登录。当前机器之前未登录时会报：
@@ -136,7 +140,7 @@ npx vercel@37.14.0 whoami
 No existing credentials found. Please run `vercel login` or pass "--token"
 ```
 
-这种情况按上面的 `npx vercel@37.14.0 login` 重新登录即可。
+这种情况按上面的 `npx --yes --registry=https://registry.npmjs.org vercel@latest login` 重新登录即可。
 
 ### 4. 在 Vercel 导入项目
 
