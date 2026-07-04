@@ -1,0 +1,66 @@
+vercel.json
+  s_84a58a834a5c9a::t_d594a295e29b16 1-4 gitai:{"mixed_line_ranges":[],"operations":[{"operation_id":"6a492dcecf96ba8819ced985","tool_type":"agent","tool_id":"Write","line_ranges":[{"Range":[1,4]}]}]}
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "957f1c0c834e2f88d623abef65a9a92860d7e105",
+  "prompts": {},
+  "sessions": {
+    "s_84a58a834a5c9a": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a491c09cf96ba8819ced671",
+        "model": "openrouter-3o__dev"
+      },
+      "human_author": "yanjun <yanjun.micro@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {
+    "vercel.json": [
+      {
+        "hash": "s_84a58a834a5c9a::t_d594a295e29b16",
+        "line_ranges": [
+          {
+            "Range": [
+              1,
+              4
+            ]
+          }
+        ],
+        "mixed_line_ranges": [],
+        "operations": [
+          {
+            "operation_id": "6a492dcecf96ba8819ced985",
+            "tool_type": "agent",
+            "tool_id": "Write",
+            "line_ranges": [
+              {
+                "Range": [
+                  1,
+                  4
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "remote_transcripts": {
+    "s_84a58a834a5c9a": {
+      "tool": "trae",
+      "conversation_id": "6a491c09cf96ba8819ced671",
+      "session_id": "6a491c09cf96ba8819ced671",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    },
+    "s_84a58a834a5c9a::t_d594a295e29b16": {
+      "tool": "trae",
+      "conversation_id": "6a491c09cf96ba8819ced671",
+      "session_id": "6a491c09cf96ba8819ced671",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    }
+  }
+}
