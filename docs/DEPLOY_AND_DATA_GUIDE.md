@@ -20,7 +20,52 @@
 
 ## 一、发布页面到 Vercel
 
-### 1. 准备代码仓库
+### 1. 当前项目仓库信息
+
+当前项目已经上传到 GitHub：
+
+```text
+git@github.com:jy1981/hanppy_birthday.git
+```
+
+GitHub 页面地址：
+
+```text
+https://github.com/jy1981/hanppy_birthday
+```
+
+本地仓库当前 remote：
+
+```bash
+git remote -v
+```
+
+应该看到：
+
+```text
+origin  git@github.com:jy1981/hanppy_birthday.git (fetch)
+origin  git@github.com:jy1981/hanppy_birthday.git (push)
+```
+
+后续改完代码后，按这个流程推送：
+
+```bash
+git status
+git add .
+git commit -m "你的提交说明"
+git push
+```
+
+如果 push 提示 SSH 权限问题，先确认本机 SSH key 已加到 GitHub，并执行：
+
+```bash
+ssh-add ~/.ssh/id_ed25519
+ssh -T git@github.com
+```
+
+看到类似 `Hi jy1981! You've successfully authenticated` 即表示 GitHub SSH 登录正常。
+
+### 2. 准备代码仓库
 
 把项目推到 GitHub。建议先确认本地能通过：
 
@@ -43,12 +88,43 @@ npm run build
 }
 ```
 
-### 2. 在 Vercel 导入项目
+### 3. Vercel 怎么登录
+
+推荐先用网页登录：
+
+1. 打开 https://vercel.com/login
+2. 选择 `Continue with GitHub`
+3. 授权 Vercel 访问 GitHub
+4. 如果授权范围可选，至少允许访问 `jy1981/hanppy_birthday`
+
+如果要用命令行登录，可以在项目目录执行：
+
+```bash
+npx vercel@37.14.0 login
+```
+
+命令会让你输入邮箱，Vercel 会发送验证邮件。点邮件里的确认链接后，终端会完成登录。
+
+验证 CLI 是否登录成功：
+
+```bash
+npx vercel@37.14.0 whoami
+```
+
+如果能输出账号名，说明 CLI 已登录。当前机器之前未登录时会报：
+
+```text
+No existing credentials found. Please run `vercel login` or pass "--token"
+```
+
+这种情况按上面的 `npx vercel@37.14.0 login` 重新登录即可。
+
+### 4. 在 Vercel 导入项目
 
 1. 打开 https://vercel.com
 2. 使用 GitHub 登录
 3. 点击 `Add New...` -> `Project`
-4. 选择你的 GitHub 仓库
+4. 选择 `jy1981/hanppy_birthday`
 5. Framework Preset 选择 `Next.js`
 6. Build Command 通常保持 `npm run build`
 7. Output Directory 通常留空
@@ -72,7 +148,7 @@ my_tontong
 my-tontong
 ```
 
-### 3. 后续更新
+### 5. 后续更新
 
 之后每次 push 到 GitHub 默认分支，Vercel 会自动重新部署。
 
