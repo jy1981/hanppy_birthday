@@ -274,6 +274,8 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
+  const sealActive = isRecording || phase === 'upload';
+
   return (
     <AnimatePresence>
       <motion.div
@@ -290,15 +292,35 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-sm rounded-2xl p-8 flex flex-col items-center gap-5"
+          className="relative w-full max-w-sm overflow-hidden rounded-2xl p-8 flex flex-col items-center gap-5"
           style={{
             background: 'linear-gradient(160deg, rgba(20,16,14,0.95) 0%, rgba(12,10,8,0.98) 100%)',
             border: '1px solid rgba(201,163,104,0.25)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(201,163,104,0.08)',
           }}
         >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-70"
+            style={{
+              background:
+                'radial-gradient(circle at 50% -15%, rgba(241,224,176,0.16) 0%, transparent 36%), radial-gradient(circle at 10% 85%, rgba(176,58,72,0.16) 0%, transparent 34%)',
+            }}
+          />
+          <motion.div
+            aria-hidden
+            animate={{ rotate: sealActive ? 360 : 0, opacity: sealActive ? 0.8 : 0.35 }}
+            transition={{ rotate: { duration: 18, repeat: Infinity, ease: 'linear' }, opacity: { duration: 0.4 } }}
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full"
+            style={{
+              background:
+                'conic-gradient(from 120deg, transparent, rgba(212,166,86,0.22), transparent 34%, rgba(176,58,72,0.18), transparent 62%, rgba(241,224,176,0.16), transparent)',
+              filter: 'blur(0.5px)',
+            }}
+          />
+
           {/* 标题 */}
-          <div className="flex flex-col items-center gap-2">
+          <div className="relative z-[1] flex flex-col items-center gap-2">
+            <SoundSeal levels={levels} active={sealActive} />
             <span className="font-en text-[10px] tracking-[0.4em] text-[#D4A656]/60">
               BIRTHDAY WISH
             </span>
@@ -310,7 +332,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
 
           {/* ===== 首次录音 ===== */}
           {phase === 'record' && (
-            <div className="w-full flex flex-col items-center gap-4">
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               {/* 密码设置 */}
               {!isRecording && (
                 <div className="w-full flex flex-col gap-3">
@@ -400,7 +422,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
           )}
 
           {phase === 'upload' && (
-            <div className="w-full flex flex-col items-center gap-4 py-4">
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4 py-4">
               <VoiceMeter levels={levels} active />
               <motion.div
                 animate={{ rotate: 360 }}
@@ -417,7 +439,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
 
           {/* ===== 已有录音（锁定） ===== */}
           {phase === 'locked' && (
-            <div className="w-full flex flex-col items-center gap-4">
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
                 这里封存着一个生日愿望
                 <br />
@@ -451,7 +473,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
 
           {/* ===== 播放 ===== */}
           {phase === 'play' && audioUrl && (
-            <div className="w-full flex flex-col items-center gap-4">
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               <p className="font-song text-[#F3EBDD]/70 text-sm text-center">
                 🎧 你的生日愿望
               </p>
@@ -473,7 +495,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="font-song text-[#B03A48] text-xs text-center"
+              className="relative z-[1] font-song text-[#B03A48] text-xs text-center"
             >
               {error}
             </motion.p>
@@ -485,7 +507,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
               cleanup(true);
               onClose();
             }}
-            className="font-song text-[#F3EBDD]/40 text-xs tracking-[0.2em] mt-2"
+            className="relative z-[1] font-song text-[#F3EBDD]/40 text-xs tracking-[0.2em] mt-2"
           >
             关闭
           </button>
@@ -535,4 +557,50 @@ function VoiceMeter({ levels, active }: { levels: number[]; active: boolean }) {
 
 function createIdleLevels() {
   return Array.from({ length: 18 }, (_, index) => 0.16 + ((index + 2) % 5) * 0.035);
+}
+
+function SoundSeal({ levels, active }: { levels: number[]; active: boolean }) {
+  const strength = levels.reduce((sum, level) => sum + level, 0) / Math.max(1, levels.length);
+  const pulse = Math.min(1, Math.max(0.18, strength));
+
+  return (
+    <div className="relative mb-1 h-20 w-20">
+      <motion.div
+        animate={{
+          scale: active ? [1, 1 + pulse * 0.18, 1] : 1,
+          opacity: active ? [0.65, 1, 0.72] : 0.55,
+        }}
+        transition={{ duration: 1.4, repeat: active ? Infinity : 0, ease: 'easeInOut' }}
+        className="absolute inset-0 rounded-full"
+        style={{
+          background:
+            'radial-gradient(circle, rgba(241,224,176,0.16) 0%, rgba(212,166,86,0.08) 48%, transparent 72%)',
+          boxShadow: active
+            ? `0 0 ${18 + pulse * 28}px rgba(212,166,86,0.22)`
+            : '0 0 18px rgba(212,166,86,0.08)',
+        }}
+      />
+      <motion.div
+        animate={{ rotate: active ? 360 : 12 }}
+        transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
+        className="absolute inset-2 rounded-full"
+        style={{
+          border: '1px solid rgba(212,166,86,0.32)',
+          background:
+            'conic-gradient(from 180deg, rgba(241,224,176,0.28), transparent 18%, rgba(176,58,72,0.22), transparent 42%, rgba(212,166,86,0.28), transparent 72%, rgba(241,224,176,0.18))',
+        }}
+      />
+      <div
+        className="absolute inset-[18px] rounded-full"
+        style={{
+          border: '1px solid rgba(241,224,176,0.22)',
+          background: 'rgba(6,5,4,0.55)',
+          boxShadow: 'inset 0 0 18px rgba(212,166,86,0.08)',
+        }}
+      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="font-kai text-lg tracking-[0.18em] text-[#F1E0B0]">愿</span>
+      </div>
+    </div>
+  );
 }
