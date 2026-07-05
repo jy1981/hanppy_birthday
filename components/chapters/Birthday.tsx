@@ -16,9 +16,9 @@ export default function Birthday({ onComplete }: { onComplete?: () => void }) {
   const [showLetter, setShowLetter] = useState(false);
 
   // FilmScene 照片播完后自动显示信件
-  // 估算时间：title 3s + photos 4.5s × 4 = 21s
+  // 估算时间：title 3s + photos 5.6s × 3 = 19.8s
   useEffect(() => {
-    const t = setTimeout(() => setShowLetter(true), 21000);
+    const t = setTimeout(() => setShowLetter(true), 20000);
     return () => clearTimeout(t);
   }, []);
 

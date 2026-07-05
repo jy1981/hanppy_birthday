@@ -50,7 +50,8 @@ export default function Candles({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="font-song text-paper/60 text-sm tracking-[0.25em] mt-2"
+            className="font-song text-paper/90 text-sm tracking-[0.25em] mt-2"
+            style={{ textShadow: '0 1px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8)' }}
           >
             点击吹灭蜡烛，许个愿
           </motion.p>

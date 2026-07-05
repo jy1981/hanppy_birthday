@@ -34,7 +34,7 @@ type Rocket = {
   puff: number; // 拖尾计时
 };
 
-const MAX_PARTICLES = 420;
+const MAX_PARTICLES = 240;
 const TWO_PI = Math.PI * 2;
 
 /**
@@ -286,7 +286,7 @@ export default function Fireworks({
     };
 
     let raf = 0;
-    let lastLaunch = 0;
+    let restUntil = 0; // 单发节流：场上清空后静默到该时刻再放下一发
     let lastEmber = 0;
     const tick = (t: number) => {
       // 透明擦除：只淡出上一帧的光，背景（夜色/实拍视频）得以透出
@@ -321,12 +321,16 @@ export default function Fireworks({
         launch('heart', w * 0.5);
       }
 
-      // 常规自动发射 —— 每次只放一发，绝不连发
+      // 常规自动发射 —— 严格单发：场上一发（火箭或余焰粒子）都不剩时，
+      // 静默一小段再放下一发，永不出现两朵同时在天。
       if (stateRef.current.active && !reduce) {
-        const gap = 2600 / stateRef.current.intensity;
-        if (t - lastLaunch > gap) {
+        const clear = rockets.length === 0 && particles.length === 0;
+        if (clear && restUntil === 0) {
+          restUntil = t + 900; // 上一发彻底散尽，进入短暂留白
+        }
+        if (clear && restUntil > 0 && t >= restUntil) {
           launch(pick<Kind>(['peony', 'willow', 'ring', 'crackle']));
-          lastLaunch = t;
+          restUntil = 0;
         }
       }
 

@@ -6,8 +6,8 @@ import type { Photo } from '@/lib/manifest';
 import Petals from './Petals';
 
 const TITLE_DURATION = 3000;
-const PHOTO_DURATION = 4500;
-const CROSSFADE = 800;
+const PHOTO_DURATION = 5600;
+const CROSSFADE = 1300;
 
 const toneFilter: Record<string, string> = {
   amber: 'saturate(0.88) contrast(1.05) brightness(0.9) sepia(0.1)',
@@ -119,9 +119,9 @@ export default function FilmScene({
       {phase === 'photo' && (
         <motion.div
           key={`flash-${photoIndex}`}
-          initial={{ opacity: 0.32 }}
+          initial={{ opacity: 0.28 }}
           animate={{ opacity: 0 }}
-          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 1.9, ease: [0.22, 1, 0.36, 1] }}
           className="absolute inset-0 z-[4] pointer-events-none"
           style={{
             background:

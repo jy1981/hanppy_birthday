@@ -126,9 +126,9 @@ export default function SceneController({
         <motion.div
           key={`projection-${currentScene.key}`}
           initial={{ opacity: 0, x: direction > 0 ? '-60vw' : '100vw' }}
-          animate={{ opacity: [0, 0.45, 0], x: direction > 0 ? '110vw' : '-70vw' }}
+          animate={{ opacity: [0, 0.32, 0], x: direction > 0 ? '110vw' : '-70vw' }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.15, ease }}
+          transition={{ duration: 1.9, ease }}
           className="pointer-events-none fixed inset-y-0 left-0 z-[120] w-[60vw] max-w-[360px]"
           style={{
             background:

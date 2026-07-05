@@ -80,7 +80,8 @@ export default function Finale() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.8 }}
-                className="font-song text-paper/70 text-sm tracking-[0.25em]"
+                className="font-song text-paper/90 text-sm tracking-[0.25em]"
+                style={{ textShadow: '0 1px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.8)' }}
               >
                 点击吹灭蜡烛，许个愿
               </motion.p>
@@ -108,9 +109,10 @@ export default function Finale() {
         </div>
 
         <motion.div
-          animate={{ opacity: [0.3, 0.6, 0.3] }}
+          animate={{ opacity: [0.55, 0.85, 0.55] }}
           transition={{ duration: 3, repeat: Infinity }}
-          className="font-song text-paper/40 text-[11px] tracking-[0.4em]"
+          className="font-song text-paper/80 text-[11px] tracking-[0.4em]"
+          style={{ textShadow: '0 1px 8px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.8)' }}
         >
           {wished ? '轻触 ❤️ 进入片尾' : '继续 · 有彩蛋'}
         </motion.div>
