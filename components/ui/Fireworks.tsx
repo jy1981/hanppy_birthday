@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { playFireworkBurst } from '@/lib/sfx';
 
-type Kind = 'peony' | 'willow' | 'ring' | 'crackle' | 'heart';
+type Kind = 'peony' | 'willow' | 'ring' | 'heart';
 
 type Particle = {
   x: number;
@@ -19,7 +19,6 @@ type Particle = {
   drag: number;
   flicker: number; // 闪烁相位
   trail: boolean; // 是否为拖尾/垂柳（更长寿、更暗）
-  crackle?: boolean; // 到寿命末端二次噼啪
 };
 
 type Rocket = {
@@ -41,7 +40,7 @@ const TWO_PI = Math.PI * 2;
  * 电影感烟花 canvas。
  * - 加法混合 + 散景柔光，模拟镜头里散焦的光斑
  * - 透明擦除做拖尾（不糊死背景，实拍烟花视频可透出）
- * - 多品种：菊花 / 垂柳 / 圆环 / 噼啪碎星 / 爱心礼花
+ * - 多品种：菊花 / 垂柳 / 圆环 / 爱心礼花
  * - 每次绽放伴随一次极轻的满屏辉光（bloom）
  * - 常驻暖色余烬缓缓上飘，作安静的浪漫底色
  * active=true 自动发射；celebrate 触发一次爱心齐放；点击也会绽放一发。
@@ -153,7 +152,6 @@ export default function Fireworks({
         let drag = 0.985;
         let maxLife = 70 + Math.random() * 55;
         let trail = false;
-        let crackle = false;
         const size = 1.1 + Math.random() * 1.7;
 
         if (kind === 'heart') {
@@ -179,12 +177,11 @@ export default function Fireworks({
           maxLife = 120 + Math.random() * 70;
           trail = true;
         } else {
-          // peony / crackle：饱满球状
+          // peony：饱满球状
           angle = (TWO_PI * i) / n + Math.random() * 0.1;
           speed = 1.6 + Math.random() * 3.6;
           vx = Math.cos(angle) * speed;
           vy = Math.sin(angle) * speed;
-          crackle = kind === 'crackle' && Math.random() < 0.5;
         }
 
         addParticle({
@@ -201,31 +198,6 @@ export default function Fireworks({
           drag,
           flicker: Math.random() * TWO_PI,
           trail,
-          crackle,
-        });
-      }
-    };
-
-    // 二次噼啪：某颗粒子末端炸出一小簇金星
-    const crackleAt = (x: number, y: number) => {
-      const n = 8 + ((Math.random() * 6) | 0);
-      for (let i = 0; i < n; i++) {
-        const a = Math.random() * TWO_PI;
-        const s = 0.6 + Math.random() * 1.6;
-        addParticle({
-          x,
-          y,
-          vx: Math.cos(a) * s,
-          vy: Math.sin(a) * s,
-          life: 0,
-          maxLife: 18 + Math.random() * 14,
-          hue: 45 + Math.random() * 10,
-          sat: 30 + Math.random() * 20,
-          size: 1 + Math.random(),
-          gravity: 0.04,
-          drag: 0.96,
-          flicker: Math.random() * TWO_PI,
-          trail: false,
         });
       }
     };
@@ -329,7 +301,7 @@ export default function Fireworks({
           restUntil = t + 900; // 上一发彻底散尽，进入短暂留白
         }
         if (clear && restUntil > 0 && t >= restUntil) {
-          launch(pick<Kind>(['peony', 'willow', 'ring', 'crackle']));
+          launch(pick<Kind>(['peony', 'willow', 'ring']));
           restUntil = 0;
         }
       }
@@ -385,7 +357,6 @@ export default function Fireworks({
         const prog = p.life / p.maxLife;
         const a = 1 - prog;
         if (a <= 0) {
-          if (p.crackle) crackleAt(p.x, p.y);
           particles.splice(i, 1);
           continue;
         }
@@ -434,7 +405,7 @@ export default function Fireworks({
       burst(
         ev.clientX - rect.left,
         ev.clientY - rect.top,
-        pick<Kind>(['peony', 'willow', 'ring', 'crackle']),
+        pick<Kind>(['peony', 'willow', 'ring']),
         pick(HUES)
       );
     };

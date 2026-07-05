@@ -1,14 +1,23 @@
 import crypto from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { hasSupabaseServerEnv, supabaseAdmin } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/server';
+import {
+  type StorageMode,
+  assertGlobalPassword,
+  getStorageMode,
+  resolvePasswordHashForWrite,
+} from '@/lib/global-password';
+import { WishStoreError } from '@/lib/store-error';
+
+export { WishStoreError } from '@/lib/store-error';
 
 const WISH_DIR = path.join(process.cwd(), 'public', 'wishes');
 const META_FILE = path.join(WISH_DIR, 'meta.json');
 const SUPABASE_WISH_TABLE = process.env.SUPABASE_WISH_TABLE ?? 'birthday_wishes';
 const SUPABASE_WISH_BUCKET = process.env.SUPABASE_WISH_BUCKET ?? 'birthday-wishes';
 
-type WishStorageMode = 'local' | 'supabase';
+type WishStorageMode = StorageMode;
 
 type LocalWishEntry = {
   passwordHash: string;
@@ -60,66 +69,6 @@ export type WishCreateInput = {
   originalFilename: string;
   mimeType: string;
 };
-
-export class WishStoreError extends Error {
-  constructor(
-    public code:
-      | 'ALREADY_EXISTS'
-      | 'NOT_FOUND'
-      | 'INVALID_PASSWORD'
-      | 'MISCONFIGURED'
-      | 'UPLOAD_FAILED',
-    message: string,
-  ) {
-    super(message);
-    this.name = 'WishStoreError';
-  }
-}
-
-function getWishStorageMode(): WishStorageMode {
-  const preferredMode = process.env.WISH_STORAGE_MODE?.toLowerCase();
-
-  if (preferredMode === 'local') {
-    return 'local';
-  }
-
-  if (preferredMode === 'supabase') {
-    if (!hasSupabaseServerEnv || !supabaseAdmin) {
-      throw new WishStoreError('MISCONFIGURED', 'WISH_STORAGE_MODE=supabase 但缺少 Supabase 环境变量');
-    }
-    return 'supabase';
-  }
-
-  return hasSupabaseServerEnv && supabaseAdmin ? 'supabase' : 'local';
-}
-
-function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const derived = crypto.scryptSync(password, salt, 64).toString('hex');
-  return `scrypt:${salt}:${derived}`;
-}
-
-function verifyPassword(password: string, storedHash: string): boolean {
-  if (storedHash.startsWith('scrypt:')) {
-    const [, salt, hash] = storedHash.split(':');
-
-    if (!salt || !hash) {
-      return false;
-    }
-
-    const derived = crypto.scryptSync(password, salt, 64);
-    const stored = Buffer.from(hash, 'hex');
-
-    if (derived.length !== stored.length) {
-      return false;
-    }
-
-    return crypto.timingSafeEqual(derived, stored);
-  }
-
-  const legacyHash = crypto.createHash('sha256').update(password).digest('hex');
-  return legacyHash === storedHash;
-}
 
 function inferExtension(originalFilename: string, mimeType: string): string {
   const normalizedName = originalFilename.toLowerCase();
@@ -178,17 +127,6 @@ async function getSupabaseWishRows(): Promise<SupabaseWishRow[]> {
   return (data as SupabaseWishRow[] | null) ?? [];
 }
 
-// 密码只在第一次许愿时设置，之后所有年份复用同一份哈希。取最早那条作为“权威密码”。
-function canonicalHashFromRows(rows: SupabaseWishRow[]): string | null {
-  if (rows.length === 0) return null;
-  return rows[rows.length - 1].password_hash;
-}
-
-function canonicalHashFromEntries(entries: LocalWishEntry[]): string | null {
-  if (entries.length === 0) return null;
-  return entries[0].passwordHash;
-}
-
 async function createSupabaseSignedUrl(storagePath: string): Promise<string> {
   if (!supabaseAdmin) {
     throw new WishStoreError('MISCONFIGURED', 'Supabase 客户端未初始化');
@@ -206,7 +144,7 @@ async function createSupabaseSignedUrl(storagePath: string): Promise<string> {
 }
 
 export async function getWishSummary(): Promise<WishSummary> {
-  const storageMode = getWishStorageMode();
+  const storageMode = getStorageMode();
   const year = new Date().getFullYear();
 
   if (storageMode === 'supabase') {
@@ -231,7 +169,7 @@ export async function getWishSummary(): Promise<WishSummary> {
 }
 
 export async function createWish(input: WishCreateInput): Promise<WishReveal> {
-  const storageMode = getWishStorageMode();
+  const storageMode = getStorageMode();
   const year = new Date().getFullYear();
 
   if (storageMode === 'supabase') {
@@ -240,22 +178,12 @@ export async function createWish(input: WishCreateInput): Promise<WishReveal> {
     }
 
     const rows = await getSupabaseWishRows();
-    const canonicalHash = canonicalHashFromRows(rows);
-
-    let passwordHash: string;
-    if (canonicalHash) {
-      // 已有愿望：必须用既定密码，且今年不能重复许愿
-      if (!verifyPassword(input.password, canonicalHash)) {
-        throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
-      }
-      if (rows.some((row) => wishYear(row.created_at) === year)) {
-        throw new WishStoreError('ALREADY_EXISTS', `${year} 年已经许过愿望啦`);
-      }
-      passwordHash = canonicalHash;
-    } else {
-      // 第一次许愿：设置密码
-      passwordHash = hashPassword(input.password);
+    // 今年只能许一次愿（照片名额独立，不在此限制）
+    if (rows.some((row) => wishYear(row.created_at) === year)) {
+      throw new WishStoreError('ALREADY_EXISTS', `${year} 年已经许过愿望啦`);
     }
+    // 全站唯一密码：首次设置，之后校验一致（愿望与相册共用）
+    const passwordHash = await resolvePasswordHashForWrite(input.password);
 
     const id = crypto.randomUUID();
     const ext = inferExtension(input.originalFilename, input.mimeType);
@@ -300,20 +228,12 @@ export async function createWish(input: WishCreateInput): Promise<WishReveal> {
   }
 
   const entries = await readLocalEntries();
-  const canonicalHash = canonicalHashFromEntries(entries);
-
-  let passwordHash: string;
-  if (canonicalHash) {
-    if (!verifyPassword(input.password, canonicalHash)) {
-      throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
-    }
-    if (entries.some((entry) => wishYear(entry.createdAt) === year)) {
-      throw new WishStoreError('ALREADY_EXISTS', `${year} 年已经许过愿望啦`);
-    }
-    passwordHash = canonicalHash;
-  } else {
-    passwordHash = hashPassword(input.password);
+  // 今年只能许一次愿（照片名额独立，不在此限制）
+  if (entries.some((entry) => wishYear(entry.createdAt) === year)) {
+    throw new WishStoreError('ALREADY_EXISTS', `${year} 年已经许过愿望啦`);
   }
+  // 全站唯一密码：首次设置，之后校验一致（愿望与相册共用）
+  const passwordHash = await resolvePasswordHashForWrite(input.password);
 
   const ext = inferExtension(input.originalFilename, input.mimeType);
   const audioName = `wish_${Date.now()}.${ext}`;
@@ -339,18 +259,11 @@ export async function createWish(input: WishCreateInput): Promise<WishReveal> {
 }
 
 export async function listWishes(password: string): Promise<WishList> {
-  const storageMode = getWishStorageMode();
+  const storageMode = getStorageMode();
+  await assertGlobalPassword(password);
 
   if (storageMode === 'supabase') {
     const rows = await getSupabaseWishRows();
-    if (rows.length === 0) {
-      throw new WishStoreError('NOT_FOUND', '还没有任何愿望');
-    }
-
-    const canonicalHash = canonicalHashFromRows(rows);
-    if (!canonicalHash || !verifyPassword(password, canonicalHash)) {
-      throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
-    }
 
     const wishes = await Promise.all(
       rows.map(async (row) => ({
@@ -366,14 +279,6 @@ export async function listWishes(password: string): Promise<WishList> {
   }
 
   const entries = await readLocalEntries();
-  if (entries.length === 0) {
-    throw new WishStoreError('NOT_FOUND', '还没有任何愿望');
-  }
-
-  const canonicalHash = canonicalHashFromEntries(entries);
-  if (!canonicalHash || !verifyPassword(password, canonicalHash)) {
-    throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
-  }
 
   const wishes = entries
     .map((entry) => ({
@@ -388,7 +293,8 @@ export async function listWishes(password: string): Promise<WishList> {
 }
 
 export async function deleteWish(password: string): Promise<void> {
-  const storageMode = getWishStorageMode();
+  const storageMode = getStorageMode();
+  await assertGlobalPassword(password);
 
   if (storageMode === 'supabase') {
     if (!supabaseAdmin) {
@@ -398,11 +304,6 @@ export async function deleteWish(password: string): Promise<void> {
     const rows = await getSupabaseWishRows();
     if (rows.length === 0) {
       throw new WishStoreError('NOT_FOUND', '还没有任何愿望');
-    }
-
-    const canonicalHash = canonicalHashFromRows(rows);
-    if (!canonicalHash || !verifyPassword(password, canonicalHash)) {
-      throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
     }
 
     const target = rows[0];
@@ -425,11 +326,6 @@ export async function deleteWish(password: string): Promise<void> {
   const entries = await readLocalEntries();
   if (entries.length === 0) {
     throw new WishStoreError('NOT_FOUND', '还没有任何愿望');
-  }
-
-  const canonicalHash = canonicalHashFromEntries(entries);
-  if (!canonicalHash || !verifyPassword(password, canonicalHash)) {
-    throw new WishStoreError('INVALID_PASSWORD', '密码不正确');
   }
 
   const target = entries[entries.length - 1];
@@ -462,7 +358,7 @@ function assertAdminPassword(password: string): void {
 
 export async function adminListWishes(adminPassword: string): Promise<WishList> {
   assertAdminPassword(adminPassword);
-  const storageMode = getWishStorageMode();
+  const storageMode = getStorageMode();
 
   if (storageMode === 'supabase') {
     const rows = await getSupabaseWishRows();
@@ -494,7 +390,7 @@ export async function adminListWishes(adminPassword: string): Promise<WishList> 
 
 export async function adminDeleteWish(adminPassword: string, id: string): Promise<void> {
   assertAdminPassword(adminPassword);
-  const storageMode = getWishStorageMode();
+  const storageMode = getStorageMode();
 
   if (storageMode === 'supabase') {
     if (!supabaseAdmin) {
@@ -541,7 +437,7 @@ export async function adminDeleteWish(adminPassword: string, id: string): Promis
 
 export async function adminClearWishes(adminPassword: string): Promise<number> {
   assertAdminPassword(adminPassword);
-  const storageMode = getWishStorageMode();
+  const storageMode = getStorageMode();
 
   if (storageMode === 'supabase') {
     if (!supabaseAdmin) {

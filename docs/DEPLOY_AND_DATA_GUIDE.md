@@ -317,7 +317,7 @@ https://my-tongtong.netlify.app
 3. 展开 `Add environment variables` → `Import from a .env file`，一次性粘入下面 8 行（见 7.2）。
 4. 点 `Deploy`。
 
-#### 7.2 环境变量（Netlify 需要的完整 8 项）
+#### 7.2 环境变量（Netlify 需要的完整 10 项）
 
 在 Netlify `Project configuration -> Environment variables` 里配置。值统一以本机 `.env.local` 为准（**不要提交到 Git**）。注意最后一项 `SECRETS_SCAN_ENABLED`，是 Vercel 没有、Netlify 特有的：
 
@@ -328,6 +328,8 @@ SUPABASE_SERVICE_ROLE_KEY
 WISH_STORAGE_MODE=supabase
 SUPABASE_WISH_TABLE=birthday_wishes
 SUPABASE_WISH_BUCKET=birthday-wishes
+SUPABASE_IMAGE_TABLE=birthday_images
+SUPABASE_IMAGE_BUCKET=birthday-images
 WISH_ADMIN_PASSWORD
 SECRETS_SCAN_ENABLED=false
 ```
@@ -469,6 +471,39 @@ birthday-wishes
 
 注意保持 bucket 为 private。播放录音时，服务端会在密码验证通过后生成 30 分钟有效的签名 URL。
 
+### 2026 彤彤生日相册表（照片上传，新增）
+
+相册功能走 `/api/image`，和录音完全对称：照片文件放 Supabase Storage，密码哈希和元数据放 Postgres。名额与录音各自独立（每年录音一条、照片一张互不影响），但**共用同一个全站唯一密码**（取愿望表与相册表中最早创建那条记录的密码哈希，首次设置后不可改）。
+
+在 Supabase `SQL Editor` 执行（结构与 `birthday_wishes` 一致，仅表名不同）：
+
+```sql
+create table if not exists birthday_images (
+  id uuid primary key default gen_random_uuid(),
+  password_hash text not null,
+  storage_path text not null unique,
+  original_filename text not null,
+  mime_type text not null,
+  file_size integer not null check (file_size > 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists birthday_images_created_at_idx
+  on birthday_images (created_at desc);
+
+alter table birthday_images enable row level security;
+```
+
+相册表同样不需要开放匿名读写，全部走服务端 API + `SUPABASE_SERVICE_ROLE_KEY`。
+
+再到 `Storage` 创建一个私有 bucket：
+
+```text
+birthday-images
+```
+
+保持 private。查看照片时，服务端在密码验证通过后生成 30 分钟有效的签名 URL（和录音相同机制）。
+
 ## 四、项目里安装 Supabase SDK
 
 ```bash
@@ -486,6 +521,8 @@ SUPABASE_SERVICE_ROLE_KEY=你的_service_role_key
 WISH_STORAGE_MODE=supabase
 SUPABASE_WISH_TABLE=birthday_wishes
 SUPABASE_WISH_BUCKET=birthday-wishes
+SUPABASE_IMAGE_TABLE=birthday_images
+SUPABASE_IMAGE_BUCKET=birthday-images
 ```
 
 在 Vercel 后台也要配置同样的变量：
@@ -765,6 +802,7 @@ npm run dev
 - Vercel 环境变量已配置。
 - Supabase 表已创建。
 - Supabase `birthday-wishes` 私有 bucket 已创建。
+- Supabase `birthday_images` 表 + `birthday-images` 私有 bucket 已创建（相册功能）。
 - 如果前端直连，RLS 策略已配置。
 - 如果 API 中转，`service_role key` 只存在 Vercel 环境变量里。
 - 线上 `WISH_STORAGE_MODE=supabase`。

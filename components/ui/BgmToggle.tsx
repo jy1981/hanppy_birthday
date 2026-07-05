@@ -40,6 +40,35 @@ export default function BgmToggle({ autoplay = false }: { autoplay?: boolean }) 
     setSfxMuted(!playing);
   }, [playing]);
 
+  // 录音 / 试听期间挂起 BGM，结束后若之前在播放则恢复
+  useEffect(() => {
+    const wasPlayingRef = { current: false };
+
+    const onSuspend = () => {
+      const a = audioRef.current;
+      if (!a) return;
+      wasPlayingRef.current = !a.paused;
+      if (!a.paused) {
+        a.pause();
+        setPlaying(false);
+      }
+    };
+
+    const onResume = () => {
+      const a = audioRef.current;
+      if (!a || !wasPlayingRef.current) return;
+      wasPlayingRef.current = false;
+      a.play().then(() => setPlaying(true)).catch(() => {});
+    };
+
+    window.addEventListener('bgm:suspend', onSuspend);
+    window.addEventListener('bgm:resume', onResume);
+    return () => {
+      window.removeEventListener('bgm:suspend', onSuspend);
+      window.removeEventListener('bgm:resume', onResume);
+    };
+  }, []);
+
   const toggle = () => {
     unlockAudio(); // 用户手势解锁音频上下文（iOS 必需）
     const a = audioRef.current;

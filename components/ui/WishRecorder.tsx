@@ -2,8 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { suspendBgm, resumeBgm } from '@/lib/bgm';
 
 type Phase = 'check' | 'record' | 'upload' | 'play' | 'blocked' | 'historyUnlock' | 'history';
+
+type PhotoPhase = 'check' | 'upload' | 'blocked' | 'done' | 'historyUnlock' | 'history';
+
+type Tab = 'voice' | 'photo';
 
 type WishSummary = {
   hasAnyWish: boolean;
@@ -19,7 +24,22 @@ type WishItem = {
   audioUrl: string;
 };
 
+type ImageSummary = {
+  hasAnyImage: boolean;
+  hasImageThisYear: boolean;
+  year: number;
+  count: number;
+};
+
+type ImageItem = {
+  id: string;
+  year: number;
+  createdAt: string;
+  imageUrl: string;
+};
+
 export default function WishRecorder({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<Tab>('voice');
   const [phase, setPhase] = useState<Phase>('check');
   const [summary, setSummary] = useState<WishSummary | null>(null);
   const [password, setPassword] = useState('');
@@ -33,9 +53,28 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
   const [recordTime, setRecordTime] = useState(0);
   const [levels, setLevels] = useState<number[]>(() => createIdleLevels());
 
+  // ===== 相册（照片）相关 =====
+  const [photoPhase, setPhotoPhase] = useState<PhotoPhase>('check');
+  const [imageSummary, setImageSummary] = useState<ImageSummary | null>(null);
+  const [photoPassword, setPhotoPassword] = useState('');
+  const [photoConfirmPw, setPhotoConfirmPw] = useState('');
+  const [photoUnlockPw, setPhotoUnlockPw] = useState('');
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [photoError, setPhotoError] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [savedPhotoUrl, setSavedPhotoUrl] = useState('');
+  const [savedPhotoYear, setSavedPhotoYear] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const isFirstWish = !summary?.hasAnyWish;
   const hasHistory = Boolean(summary?.hasAnyWish);
   const currentYear = summary?.year ?? new Date().getFullYear();
+
+  const isFirstPhoto = !imageSummary?.hasAnyImage;
+  const hasPhotoHistory = Boolean(imageSummary?.hasAnyImage);
+  const currentPhotoYear = imageSummary?.year ?? new Date().getFullYear();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -65,6 +104,31 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
         setPhase('record');
       });
   }, []);
+
+  // 相册初始检查：今年已传→拦截；否则进入上传
+  useEffect(() => {
+    fetch('/api/image')
+      .then((r) => r.json())
+      .then((d: ImageSummary) => {
+        setImageSummary(d);
+        setPhotoPhase(d.hasImageThisYear ? 'blocked' : 'upload');
+      })
+      .catch(() => {
+        setImageSummary({ hasAnyImage: false, hasImageThisYear: false, year: new Date().getFullYear(), count: 0 });
+        setPhotoPhase('upload');
+      });
+  }, []);
+
+  // 预览 URL 生命周期管理
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl('');
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
 
   const stopAudioAnalysis = useCallback((resetLevels = true) => {
     if (rafRef.current != null) {
@@ -159,6 +223,12 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
   }, [stopAudioAnalysis]);
 
   useEffect(() => () => cleanup(true), [cleanup]);
+
+  // 弹窗打开期间挂起 BGM（录音与试听都不被背景音乐干扰），关闭后恢复
+  useEffect(() => {
+    suspendBgm();
+    return () => resumeBgm();
+  }, []);
 
   const startRecording = async () => {
     setError('');
@@ -305,6 +375,83 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
+  // ===== 相册：选择、上传、解锁历史 =====
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('请选择图片文件');
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      setPhotoError('图片过大，请压缩到 12MB 以内');
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const uploadPhoto = async () => {
+    setPhotoError('');
+    if (!selectedFile) {
+      setPhotoError('请先选择一张照片');
+      return;
+    }
+    if (!photoPassword) {
+      setPhotoError(isFirstPhoto ? '请先设置密码' : '请输入既定密码');
+      return;
+    }
+    if (isFirstPhoto && photoConfirmPw && photoConfirmPw !== photoPassword) {
+      setPhotoError('两次密码不一致');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', selectedFile, selectedFile.name || 'photo.jpg');
+      fd.append('password', photoPassword);
+      const res = await fetch('/api/image', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        setSavedPhotoUrl(data.imageUrl);
+        setSavedPhotoYear(typeof data.year === 'number' ? data.year : currentPhotoYear);
+        setSelectedFile(null);
+        setPhotoPhase('done');
+      } else {
+        setPhotoError(data.error || '上传失败');
+      }
+    } catch {
+      setPhotoError('上传失败，请重试');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleUnlockPhotoHistory = async () => {
+    setPhotoError('');
+    if (!photoUnlockPw) {
+      setPhotoError('请输入密码');
+      return;
+    }
+    try {
+      const res = await fetch('/api/image', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: photoUnlockPw }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setImages(Array.isArray(data.images) ? data.images : []);
+        setPhotoPhase('history');
+      } else {
+        setPhotoError(data.error || '密码不正确');
+      }
+    } catch {
+      setPhotoError('验证失败，请重试');
+    }
+  };
+
   const sealActive = isRecording || phase === 'upload';
 
   return (
@@ -353,16 +500,47 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
           <div className="relative z-[1] flex flex-col items-center gap-2">
             <SoundSeal levels={levels} active={sealActive} />
             <span className="font-en text-[10px] tracking-[0.4em] text-[#D4A656]/60">
-              BIRTHDAY WISH
+              {tab === 'voice' ? 'BIRTHDAY WISH' : 'BIRTHDAY ALBUM'}
             </span>
             <h3 className="font-kai text-2xl text-[#F1E0B0] tracking-[0.15em]">
-              生日愿望
+              {tab === 'voice' ? '生日愿望' : '生日相册'}
             </h3>
             <span className="hairline-gold w-16" />
           </div>
 
+          {/* 声音 / 照片 切换 */}
+          <div
+            className="relative z-[1] flex w-full max-w-[240px] rounded-full p-1"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(201,163,104,0.2)' }}
+          >
+            {(['voice', 'photo'] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  setTab(t);
+                  setError('');
+                  setPhotoError('');
+                }}
+                className="relative flex-1 py-1.5 rounded-full font-kai text-xs tracking-[0.2em] transition-colors"
+                style={{ color: tab === t ? '#0C0A08' : 'rgba(243,235,221,0.6)' }}
+              >
+                {tab === t && (
+                  <motion.span
+                    layoutId="wr-tab-pill"
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(241,224,176,0.95) 0%, rgba(212,166,86,0.9) 100%)',
+                    }}
+                    transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                  />
+                )}
+                <span className="relative z-[1]">{t === 'voice' ? '声音' : '照片'}</span>
+              </button>
+            ))}
+          </div>
+
           {/* ===== 录制愿望（首次设密码 / 往年已有则用既定密码） ===== */}
-          {phase === 'record' && (
+          {tab === 'voice' && phase === 'record' && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               {/* 密码设置 / 输入既定密码 */}
               {!isRecording && (
@@ -467,7 +645,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {phase === 'upload' && (
+          {tab === 'voice' && phase === 'upload' && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4 py-4">
               <VoiceMeter levels={levels} active />
               <motion.div
@@ -484,7 +662,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
           )}
 
           {/* ===== 今年已许愿（拦截） ===== */}
-          {phase === 'blocked' && (
+          {tab === 'voice' && phase === 'blocked' && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
                 {currentYear} 年的愿望已经封存好啦
@@ -515,7 +693,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
           )}
 
           {/* ===== 历史愿望：密码解锁 ===== */}
-          {phase === 'historyUnlock' && (
+          {tab === 'voice' && phase === 'historyUnlock' && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
                 这里封存着历年的生日愿望
@@ -558,7 +736,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
           )}
 
           {/* ===== 历史愿望：列表试听 ===== */}
-          {phase === 'history' && (
+          {tab === 'voice' && phase === 'history' && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               <p className="font-song text-[#F3EBDD]/70 text-sm text-center">
                 🎞 历年生日愿望
@@ -597,7 +775,7 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
           )}
 
           {/* ===== 刚录制完的试听 ===== */}
-          {phase === 'play' && audioUrl && (
+          {tab === 'voice' && phase === 'play' && audioUrl && (
             <div className="relative z-[1] w-full flex flex-col items-center gap-4">
               <p className="font-song text-[#F3EBDD]/70 text-sm text-center">
                 🎧 {savedYear ?? currentYear} 年的生日愿望
@@ -616,13 +794,260 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
           )}
 
           {/* 错误提示 */}
-          {error && (
+          {tab === 'voice' && error && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="relative z-[1] font-song text-[#B03A48] text-xs text-center"
             >
               {error}
+            </motion.p>
+          )}
+
+          {/* ===================== 照片 相册 ===================== */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onPickFile}
+          />
+
+          {/* ----- 上传今年照片（首次设密码 / 往年已有则用既定密码） ----- */}
+          {tab === 'photo' && photoPhase === 'upload' && (
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
+              <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
+                留下 {currentPhotoYear} 年的一张照片
+                <br />
+                <span className="text-[#F3EBDD]/40 text-xs">
+                  {isFirstPhoto
+                    ? '设置密码后，想看需要输入密码'
+                    : '密码沿用第一次设置的那一个，不可修改'}
+                </span>
+              </p>
+
+              {/* 选择 / 预览 */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="relative w-full aspect-[4/3] rounded-xl overflow-hidden flex items-center justify-center"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px dashed rgba(201,163,104,0.4)',
+                }}
+              >
+                {previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={previewUrl} alt="预览" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex flex-col items-center gap-2 text-[#D4A656]/70">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="8.5" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M4 17l4.5-4 3 2.5L15 11l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                    </svg>
+                    <span className="font-song text-xs tracking-[0.15em]">点击选择照片</span>
+                  </span>
+                )}
+              </button>
+              {previewUrl && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="font-song text-[#D4A656]/70 text-xs tracking-[0.15em] underline underline-offset-4 decoration-[#D4A656]/30"
+                >
+                  重新选择
+                </button>
+              )}
+
+              {/* 密码 */}
+              <input
+                type="password"
+                placeholder={isFirstPhoto ? '设置密码' : '输入既定密码'}
+                value={photoPassword}
+                onChange={(e) => setPhotoPassword(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-[#D4A656]/20 text-[#F3EBDD] text-sm font-song text-center outline-none focus:border-[#D4A656]/50 transition-colors"
+                style={{ letterSpacing: '0.1em' }}
+              />
+              {isFirstPhoto && photoPassword && (
+                <input
+                  type="password"
+                  placeholder="确认密码"
+                  value={photoConfirmPw}
+                  onChange={(e) => setPhotoConfirmPw(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-[#D4A656]/20 text-[#F3EBDD] text-sm font-song text-center outline-none focus:border-[#D4A656]/50 transition-colors"
+                  style={{ letterSpacing: '0.1em' }}
+                />
+              )}
+
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={uploadPhoto}
+                disabled={uploadingPhoto}
+                className="w-full py-2.5 rounded-lg font-kai text-sm tracking-[0.2em] disabled:opacity-50"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(201,163,104,0.25) 0%, rgba(241,224,176,0.15) 100%)',
+                  border: '1px solid rgba(201,163,104,0.35)',
+                  color: '#F1E0B0',
+                }}
+              >
+                {uploadingPhoto ? '封存中…' : '封存这张照片'}
+              </motion.button>
+
+              {hasPhotoHistory && (
+                <button
+                  onClick={() => {
+                    setPhotoError('');
+                    setPhotoUnlockPw('');
+                    setPhotoPhase('historyUnlock');
+                  }}
+                  className="font-song text-[#D4A656]/70 text-xs tracking-[0.15em] underline underline-offset-4 decoration-[#D4A656]/30"
+                >
+                  查看往年照片
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ----- 今年已传（拦截） ----- */}
+          {tab === 'photo' && photoPhase === 'blocked' && (
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
+              <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
+                {currentPhotoYear} 年的照片已经收好啦
+                <br />
+                <span className="text-[#F3EBDD]/40 text-xs">
+                  每年只留一张，明年再添一张新的吧
+                </span>
+              </p>
+              {hasPhotoHistory && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setPhotoError('');
+                    setPhotoUnlockPw('');
+                    setPhotoPhase('historyUnlock');
+                  }}
+                  className="w-full py-2.5 rounded-lg font-kai text-sm tracking-[0.2em]"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(201,163,104,0.25) 0%, rgba(241,224,176,0.15) 100%)',
+                    border: '1px solid rgba(201,163,104,0.35)',
+                    color: '#F1E0B0',
+                  }}
+                >
+                  查看往年照片
+                </motion.button>
+              )}
+            </div>
+          )}
+
+          {/* ----- 照片历史：密码解锁 ----- */}
+          {tab === 'photo' && photoPhase === 'historyUnlock' && (
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
+              <p className="font-song text-[#F3EBDD]/70 text-sm text-center leading-relaxed">
+                这里收着历年的生日照片
+                <br />
+                <span className="text-[#F3EBDD]/40 text-xs">输入密码即可逐年翻看</span>
+              </p>
+              <input
+                type="password"
+                placeholder="输入密码"
+                value={photoUnlockPw}
+                onChange={(e) => setPhotoUnlockPw(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleUnlockPhotoHistory()}
+                className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-[#D4A656]/20 text-[#F3EBDD] text-sm font-song text-center outline-none focus:border-[#D4A656]/50 transition-colors"
+                style={{ letterSpacing: '0.1em' }}
+              />
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleUnlockPhotoHistory}
+                className="w-full py-2.5 rounded-lg font-kai text-sm tracking-[0.2em]"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(201,163,104,0.25) 0%, rgba(241,224,176,0.15) 100%)',
+                  border: '1px solid rgba(201,163,104,0.35)',
+                  color: '#F1E0B0',
+                }}
+              >
+                解锁翻看
+              </motion.button>
+              {imageSummary && !imageSummary.hasImageThisYear && (
+                <button
+                  onClick={() => {
+                    setPhotoError('');
+                    setPhotoPhase('upload');
+                  }}
+                  className="font-song text-[#F3EBDD]/40 text-xs tracking-[0.15em]"
+                >
+                  返回上传
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ----- 照片历史：相册 ----- */}
+          {tab === 'photo' && photoPhase === 'history' && (
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
+              <p className="font-song text-[#F3EBDD]/70 text-sm text-center">
+                📷 历年生日照片
+              </p>
+              <div className="w-full flex flex-col gap-4 max-h-[46vh] overflow-y-auto pr-1">
+                {images.length === 0 && (
+                  <p className="font-song text-[#F3EBDD]/40 text-xs text-center">还没有照片</p>
+                )}
+                {images.map((image) => (
+                  <div
+                    key={image.id}
+                    className="w-full flex flex-col gap-2 rounded-xl p-3"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(201,163,104,0.18)',
+                    }}
+                  >
+                    <div className="flex items-baseline justify-between">
+                      <span className="font-kai text-[#F1E0B0] text-base tracking-[0.15em]">
+                        {image.year} 年
+                      </span>
+                      <span className="font-en text-[#F3EBDD]/40 text-[10px] tracking-[0.15em]">
+                        {new Date(image.createdAt).toLocaleDateString('zh-CN')}
+                      </span>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={image.imageUrl}
+                      alt={`${image.year} 年的照片`}
+                      className="w-full rounded-lg object-cover"
+                      style={{ filter: 'sepia(0.08)' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ----- 刚上传完 ----- */}
+          {tab === 'photo' && photoPhase === 'done' && savedPhotoUrl && (
+            <div className="relative z-[1] w-full flex flex-col items-center gap-4">
+              <p className="font-song text-[#F3EBDD]/70 text-sm text-center">
+                🖼 {savedPhotoYear ?? currentPhotoYear} 年的照片
+              </p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={savedPhotoUrl}
+                alt="刚上传的照片"
+                className="w-full rounded-lg object-cover"
+                style={{ filter: 'sepia(0.08)' }}
+              />
+              <p className="font-song text-[#F3EBDD]/40 text-xs text-center">
+                关闭后想再看，需要输入密码
+              </p>
+            </div>
+          )}
+
+          {/* 照片错误提示 */}
+          {tab === 'photo' && photoError && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="relative z-[1] font-song text-[#B03A48] text-xs text-center"
+            >
+              {photoError}
             </motion.p>
           )}
 
