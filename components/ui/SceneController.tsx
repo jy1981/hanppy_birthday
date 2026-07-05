@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CinemaFrame from './CinemaFrame';
+import { useBgmPlaying } from '@/lib/bgm';
 
 const AUTO_NEXT_MS = 5000;
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -31,6 +32,7 @@ export default function SceneController({
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
   const total = scenes.length;
+  const bgmPlaying = useBgmPlaying();
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchRef = useRef({ x: 0, y: 0 });
 
@@ -201,8 +203,12 @@ export default function SceneController({
           aria-label="下一个场景"
         >
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+            animate={bgmPlaying ? { rotate: 360 } : { rotate: 0 }}
+            transition={
+              bgmPlaying
+                ? { duration: 8, repeat: Infinity, ease: 'linear' }
+                : { duration: 0.6, ease: 'easeOut' }
+            }
             className="w-full h-full"
             style={{
               backgroundImage: 'url(/media/photos/icon.png)',

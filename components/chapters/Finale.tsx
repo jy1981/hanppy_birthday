@@ -11,6 +11,7 @@ import Fireworks from '@/components/ui/Fireworks';
 import Candles from '@/components/ui/Candles';
 import ChineseSeal from '@/components/ui/ChineseSeal';
 import WishRecorder from '@/components/ui/WishRecorder';
+import { useBgmPlaying } from '@/lib/bgm';
 
 /**
  * 终章：吹蜡烛许愿 → 片尾演职员表（自动滚动）。
@@ -19,6 +20,7 @@ export default function Finale() {
   const [wished, setWished] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
   const [showWishRecorder, setShowWishRecorder] = useState(false);
+  const bgmPlaying = useBgmPlaying();
 
   if (showCredits) {
     return <CreditsRoll />;
@@ -133,8 +135,12 @@ export default function Finale() {
             aria-label="进入片尾字幕"
           >
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+              animate={bgmPlaying ? { rotate: 360 } : { rotate: 0 }}
+              transition={
+                bgmPlaying
+                  ? { duration: 8, repeat: Infinity, ease: 'linear' }
+                  : { duration: 0.6, ease: 'easeOut' }
+              }
               className="w-full h-full"
               style={{
                 backgroundImage: 'url(/media/photos/icon.png)',

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { audio } from '@/lib/manifest';
 import { setSfxMuted, unlockAudio } from '@/lib/sfx';
+import { setBgmPlaying } from '@/lib/bgm';
 
 /**
  * 背景音乐开关。autoplay 仅当 user 已交互（entered）时尝试播放。
@@ -38,6 +39,7 @@ export default function BgmToggle({ autoplay = false }: { autoplay?: boolean }) 
   // 音效静音状态跟随背景音乐开关：暂停音乐即静音音效
   useEffect(() => {
     setSfxMuted(!playing);
+    setBgmPlaying(playing);
   }, [playing]);
 
   // 录音 / 试听期间挂起 BGM，结束后若之前在播放则恢复
