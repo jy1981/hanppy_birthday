@@ -9,6 +9,11 @@ const TITLE_DURATION = 3000;
 const PHOTO_DURATION = 5600;
 const CROSSFADE = 1300;
 
+/** 一段 FilmScene 从标题卡到最后一张照片播完的总时长（含收尾停留） */
+export function filmSceneDuration(photoCount: number) {
+  return TITLE_DURATION + PHOTO_DURATION * Math.max(photoCount, 1);
+}
+
 const toneFilter: Record<string, string> = {
   amber: 'saturate(0.88) contrast(1.05) brightness(0.9) sepia(0.1)',
   warm: 'saturate(0.9) contrast(1.06) brightness(0.88) sepia(0.16)',
@@ -64,6 +69,15 @@ export default function FilmScene({
       return () => clearTimeout(t);
     }
   }, [phase, photoIndex, next, photos.length, onComplete]);
+
+  // 预取下一张照片：交叉溶解前就开始下载，消除淡入瞬间的空帧/闪白
+  useEffect(() => {
+    const upcoming = photos[photoIndex + 1];
+    if (upcoming?.src) {
+      const img = new Image();
+      img.src = upcoming.src;
+    }
+  }, [photoIndex, photos]);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#060504]">
@@ -202,6 +216,7 @@ const PhotoFrame = forwardRef<HTMLDivElement, {
           filter: { duration: 1.2, ease: [0.22, 1, 0.36, 1] },
         }}
         className="absolute inset-0"
+        style={{ willChange: 'transform' }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

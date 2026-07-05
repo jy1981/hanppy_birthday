@@ -68,11 +68,16 @@ export default function WishRecorder({ onClose }: { onClose: () => void }) {
   const [savedPhotoYear, setSavedPhotoYear] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const isFirstWish = !summary?.hasAnyWish;
+  // 全站唯一密码：只要愿望或相册任一已有记录，密码就已设定过；
+  // 此时声音与照片都应「输入既定密码」，而不是各自再设一次（否则会被后端判为密码不一致）。
+  const passwordAlreadySet =
+    Boolean(summary?.hasAnyWish) || Boolean(imageSummary?.hasAnyImage);
+
+  const isFirstWish = !passwordAlreadySet;
   const hasHistory = Boolean(summary?.hasAnyWish);
   const currentYear = summary?.year ?? new Date().getFullYear();
 
-  const isFirstPhoto = !imageSummary?.hasAnyImage;
+  const isFirstPhoto = !passwordAlreadySet;
   const hasPhotoHistory = Boolean(imageSummary?.hasAnyImage);
   const currentPhotoYear = imageSummary?.year ?? new Date().getFullYear();
 

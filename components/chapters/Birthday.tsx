@@ -3,32 +3,28 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { copy, photos } from '@/lib/manifest';
-import FilmScene from '@/components/ui/FilmScene';
+import FilmScene, { filmSceneDuration } from '@/components/ui/FilmScene';
 import ChineseSeal from '@/components/ui/ChineseSeal';
 
 const LETTER_DELAY = 200;
 
 /**
- * Chapter V · 彤 — 长镜头 + 一封信（自动播放版）。
- * 先播放 FilmScene 照片序列，然后自动切换到信件场景。
+ * Chapter V · 彤 — 长镜头 + 一封信。
+ * 先播放 FilmScene 照片序列，然后自动切换到信件；信件场景不自动切下一章，
+ * 由用户点右下角唱片按钮前进。
  */
-export default function Birthday({ onComplete }: { onComplete?: () => void }) {
+export default function Birthday() {
   const [showLetter, setShowLetter] = useState(false);
+  const birthdayPhotos = photos.birthday ?? [];
 
-  // FilmScene 照片播完后自动显示信件
-  // 估算时间：title 3s + photos 5.6s × 3 = 19.8s
+  // FilmScene 照片播完后自动显示信件（时长由照片数量推导，增删照片不会错位）
   useEffect(() => {
-    const t = setTimeout(() => setShowLetter(true), 20000);
+    const t = setTimeout(
+      () => setShowLetter(true),
+      filmSceneDuration(birthdayPhotos.length),
+    );
     return () => clearTimeout(t);
-  }, []);
-
-  // 信件显示 8 秒后通知场景控制器
-  useEffect(() => {
-    if (showLetter && onComplete) {
-      const t = setTimeout(onComplete, 10000);
-      return () => clearTimeout(t);
-    }
-  }, [showLetter, onComplete]);
+  }, [birthdayPhotos.length]);
 
   if (!showLetter) {
     return (
@@ -36,7 +32,7 @@ export default function Birthday({ onComplete }: { onComplete?: () => void }) {
         scene="05"
         titleZh="彤"
         titleEn="Her Name Is Tong"
-        photos={photos.birthday ?? []}
+        photos={birthdayPhotos}
         tone="rose"
       />
     );

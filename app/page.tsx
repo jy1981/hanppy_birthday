@@ -31,7 +31,7 @@ export default function Page() {
         key: 'cover',
         label: 'Opening',
         title: '序幕',
-        render: (onComplete: () => void) => <Cover onComplete={onComplete} />,
+        render: () => <Cover />,
       },
       {
         key: 'prelude',
@@ -61,7 +61,7 @@ export default function Page() {
         key: 'birthday',
         label: 'Chapter IV',
         title: '彤 · 芳华',
-        render: (onComplete: () => void) => <Birthday onComplete={onComplete} />,
+        render: () => <Birthday />,
       },
       {
         key: 'finale',

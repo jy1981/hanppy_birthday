@@ -205,7 +205,7 @@ export default function SceneController({
             transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
             className="w-full h-full"
             style={{
-              backgroundImage: 'url(/media/photos/round_bt.jpeg)',
+              backgroundImage: 'url(/media/photos/icon.png)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }}

@@ -64,22 +64,48 @@ export default function Petals({
       };
     }
 
+    // 预渲染柔光花瓣精灵，按色相分桶，避免逐帧 createRadialGradient
+    const SPRITE_R = 32;
+    const spriteCache = new Map<number, HTMLCanvasElement>();
+    const getSprite = (hue: number) => {
+      const hb = Math.round(hue / 5) * 5;
+      let c = spriteCache.get(hb);
+      if (!c) {
+        c = document.createElement('canvas');
+        c.width = c.height = SPRITE_R * 2;
+        const g = c.getContext('2d');
+        if (g) {
+          const grd = g.createRadialGradient(
+            SPRITE_R,
+            SPRITE_R,
+            0,
+            SPRITE_R,
+            SPRITE_R,
+            SPRITE_R
+          );
+          if (variant === 'snow') {
+            grd.addColorStop(0, `hsla(${hb}, 20%, 95%, 1)`);
+            grd.addColorStop(1, `hsla(${hb}, 15%, 90%, 0)`);
+          } else {
+            grd.addColorStop(0, `hsla(${hb}, 65%, 80%, 1)`);
+            grd.addColorStop(1, `hsla(${hb}, 55%, 70%, 0)`);
+          }
+          g.fillStyle = grd;
+          g.fillRect(0, 0, SPRITE_R * 2, SPRITE_R * 2);
+        }
+        spriteCache.set(hb, c);
+      }
+      return c;
+    };
+
     const drawPetal = (p: P) => {
+      const sprite = getSprite(p.hue);
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.a);
-      const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, p.r);
-      if (variant === 'snow') {
-        grd.addColorStop(0, `hsla(${p.hue}, 20%, 95%, ${p.o})`);
-        grd.addColorStop(1, `hsla(${p.hue}, 15%, 90%, 0)`);
-      } else {
-        grd.addColorStop(0, `hsla(${p.hue}, 65%, 80%, ${p.o})`);
-        grd.addColorStop(1, `hsla(${p.hue}, 55%, 70%, 0)`);
-      }
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, p.r * 0.55, p.r, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.globalAlpha = p.o;
+      // 椭圆花瓣：横向压扁至 0.55
+      ctx.drawImage(sprite, -p.r * 0.55, -p.r, p.r * 1.1, p.r * 2);
       ctx.restore();
     };
 

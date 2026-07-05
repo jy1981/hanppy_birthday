@@ -24,9 +24,7 @@ const config: Config = {
       fontFamily: {
         kai: ['var(--font-kai)', 'LXGW WenKai', 'KaiTi', 'serif'],
         song: ['var(--font-song)', 'Noto Serif SC', 'Songti SC', 'serif'],
-        hei: ['var(--font-hei)', 'Noto Sans SC', 'PingFang SC', 'sans-serif'],
-        hand: ['var(--font-hand)', 'Ma Shan Zheng', 'cursive'],
-        en: ['Cormorant Garamond', 'Georgia', 'serif'],
+        en: ['var(--font-en)', 'Cormorant Garamond', 'Georgia', 'serif'],
       },
       letterSpacing: {
         widest2: '0.3em',

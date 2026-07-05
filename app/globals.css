@@ -325,6 +325,14 @@ body {
   80%  { transform: translate3d(-0.4px, -0.3px, 0); }
   100% { transform: translate3d(0, 0, 0); }
 }
+/* 移动端关闭全屏 weave：亚像素抖动几乎不可见，却让整屏内容常驻 GPU 合成大层，
+   并与内层照片 transform 嵌套，得不偿失。仅在桌面保留这一丝胶片浮动。 */
+@media (max-width: 640px) {
+  .gate-weave {
+    animation: none;
+    will-change: auto;
+  }
+}
 
 /* 自定义工具 */
 @layer utilities {

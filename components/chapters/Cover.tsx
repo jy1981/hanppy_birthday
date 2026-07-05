@@ -1,20 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { copy } from '@/lib/manifest';
 import { VideoSlot } from '@/components/ui/MediaSlot';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function Cover({ onComplete }: { onComplete?: () => void }) {
-  useEffect(() => {
-    // 动画约 3.5 秒完成，之后通知场景控制器
-    if (onComplete) {
-      const t = setTimeout(onComplete, 4000);
-      return () => clearTimeout(t);
-    }
-  }, [onComplete]);
+/** 封面 — 播视频，不自动切场景，由用户点唱片按钮前进 */
+export default function Cover() {
   return (
     <div className="cinematic vignette relative w-full h-full overflow-hidden">
       {/* 视频背景 — 直接全屏铺满 */}

@@ -109,6 +109,41 @@ export default function Fireworks({
 
     const pick = <T,>(arr: T[]) => arr[(Math.random() * arr.length) | 0];
 
+    // 预渲染的柔光晕精灵缓存 —— 关键性能优化：
+    // 原实现每颗粒子每帧都 createRadialGradient（峰值 270+ 次/帧），
+    // 改为按 (色相/饱和/明度) 分桶预渲染一次，之后用 drawImage 贴图复用。
+    const GLOW_R = 32;
+    const glowCache = new Map<string, HTMLCanvasElement>();
+    const getGlowSprite = (hue: number, sat: number, light: number) => {
+      const hb = Math.round(hue / 8) * 8;
+      const sb = Math.round(sat / 15) * 15;
+      const lb = Math.round(light / 6) * 6;
+      const key = `${hb}|${sb}|${lb}`;
+      let c = glowCache.get(key);
+      if (!c) {
+        c = document.createElement('canvas');
+        c.width = c.height = GLOW_R * 2;
+        const g = c.getContext('2d');
+        if (g) {
+          const grad = g.createRadialGradient(
+            GLOW_R,
+            GLOW_R,
+            0,
+            GLOW_R,
+            GLOW_R,
+            GLOW_R
+          );
+          grad.addColorStop(0, `hsla(${hb}, ${sb}%, ${lb}%, 1)`);
+          grad.addColorStop(0.4, `hsla(${hb}, ${sb}%, ${lb - 12}%, 0.5)`);
+          grad.addColorStop(1, `hsla(${hb}, ${sb}%, ${lb - 20}%, 0)`);
+          g.fillStyle = grad;
+          g.fillRect(0, 0, GLOW_R * 2, GLOW_R * 2);
+        }
+        glowCache.set(key, c);
+      }
+      return c;
+    };
+
     const addParticle = (p: Particle) => {
       if (particles.length < MAX_PARTICLES) particles.push(p);
     };
@@ -247,14 +282,11 @@ export default function Fireworks({
       light: number,
       radius: number
     ) => {
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
-      g.addColorStop(0, `hsla(${p.hue}, ${p.sat}%, ${light}%, ${alpha})`);
-      g.addColorStop(0.4, `hsla(${p.hue}, ${p.sat}%, ${light - 12}%, ${alpha * 0.5})`);
-      g.addColorStop(1, `hsla(${p.hue}, ${p.sat}%, ${light - 20}%, 0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, radius, 0, TWO_PI);
-      ctx.fill();
+      const sprite = getGlowSprite(p.hue, p.sat, light);
+      const prevAlpha = ctx.globalAlpha;
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+      ctx.drawImage(sprite, p.x - radius, p.y - radius, radius * 2, radius * 2);
+      ctx.globalAlpha = prevAlpha;
     };
 
     let raf = 0;
