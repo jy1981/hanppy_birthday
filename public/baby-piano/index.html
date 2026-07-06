@@ -630,7 +630,7 @@
   @media (orientation: landscape) {
     body.is-mobile {
       display: grid;
-      grid-template-columns: 1fr clamp(160px, 30vw, 320px);
+      grid-template-columns: 1fr clamp(190px, 34vw, 340px);
       grid-template-rows: auto 1fr;
       grid-template-areas:
         "piano bear"
@@ -684,8 +684,17 @@
       min-height: 0;
       overflow-y: auto;
     }
-    body.is-mobile .controls .ctrl-group { justify-content: center; }
-    body.is-mobile .controls .jelly-select { max-width: none; flex: 1 1 auto; }
+    body.is-mobile .controls .ctrl-group {
+      flex-wrap: wrap;
+      justify-content: center;
+      row-gap: 6px;
+    }
+    body.is-mobile .controls .jelly-select {
+      max-width: none;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    body.is-mobile .controls input[type=range] { flex: 1 1 auto; width: auto; min-width: 80px; }
   }
 </style>
 </head>
