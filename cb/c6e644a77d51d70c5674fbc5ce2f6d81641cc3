@@ -1,0 +1,66 @@
+public/baby-piano/index.html
+  s_f0388296a72d42::t_d332c3f8489eac 7-8 gitai:{"mixed_line_ranges":[],"operations":[{"operation_id":"6a4bbbdafa2d9a130d1bf6b2","tool_type":"agent","tool_id":"Edit","line_ranges":[{"Range":[7,8]}]}]}
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "cbc6e644a77d51d70c5674fbc5ce2f6d81641cc3",
+  "prompts": {},
+  "sessions": {
+    "s_f0388296a72d42": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a49dc6eecb99cf2975bcf8a",
+        "model": "openrouter-3o__dev"
+      },
+      "human_author": "yanjun <yanjun.micro@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {
+    "public/baby-piano/index.html": [
+      {
+        "hash": "s_f0388296a72d42::t_d332c3f8489eac",
+        "line_ranges": [
+          {
+            "Range": [
+              7,
+              8
+            ]
+          }
+        ],
+        "mixed_line_ranges": [],
+        "operations": [
+          {
+            "operation_id": "6a4bbbdafa2d9a130d1bf6b2",
+            "tool_type": "agent",
+            "tool_id": "Edit",
+            "line_ranges": [
+              {
+                "Range": [
+                  7,
+                  8
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "remote_transcripts": {
+    "s_f0388296a72d42": {
+      "tool": "trae",
+      "conversation_id": "6a49dc6eecb99cf2975bcf8a",
+      "session_id": "6a49dc6eecb99cf2975bcf8a",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    },
+    "s_f0388296a72d42::t_d332c3f8489eac": {
+      "tool": "trae",
+      "conversation_id": "6a49dc6eecb99cf2975bcf8a",
+      "session_id": "6a49dc6eecb99cf2975bcf8a",
+      "status": "remote_only",
+      "message": "Remote transcript resolution is not implemented yet for TRAE prompts."
+    }
+  }
+}
