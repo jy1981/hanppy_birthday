@@ -621,38 +621,71 @@
   body.is-mobile .jelly,
   body.is-mobile .jelly-select { font-size: 0.85rem; }
 
-  /* ===== Portrait-only: ask to rotate when landscape ===== */
-  .rotate-hint { display: none; }
+  /* the old "please rotate" overlay is retired — landscape is a real layout now */
+  .rotate-hint { display: none !important; }
+
+  /* ===== Landscape (mobile): piano left, bear top-right, controls bottom-right =====
+     Two-column grid. Piano owns the whole left column (max height); the right
+     column stacks the bear on top and the control buttons underneath. */
   @media (orientation: landscape) {
-    body.is-mobile .rotate-hint {
-      display: flex;
-      position: fixed;
-      inset: 0;
-      z-index: 90;
-      align-items: center;
+    body.is-mobile {
+      display: grid;
+      grid-template-columns: 1fr clamp(160px, 30vw, 320px);
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "piano bear"
+        "piano ctrl";
+      column-gap: 8px;
+      row-gap: 2px;
+      align-items: stretch;
+    }
+    /* title bar eats vertical space we'd rather give the keyboard */
+    body.is-mobile header { display: none; }
+
+    /* piano fills the left column top-to-bottom */
+    body.is-mobile .stage {
+      grid-area: piano;
+      padding: 4px;
+      min-height: 0;
       justify-content: center;
-      text-align: center;
-      background:
-        radial-gradient(circle at 50% 40%, #fff2f9 0%, transparent 60%),
-        linear-gradient(160deg, #fde3f4 0%, #e6f7ff 100%);
     }
-    body.is-mobile .rotate-card {
-      background: var(--cream);
-      padding: 24px 30px;
-      border-radius: 26px;
-      box-shadow: 0 14px 34px rgba(120,90,150,0.3);
-      color: var(--ink-soft);
-      font-weight: 700;
-      line-height: 1.6;
+    body.is-mobile .piano-shell {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 10px 10px 14px;
     }
-    body.is-mobile .rotate-emoji {
-      font-size: 3.4rem;
-      animation: rothint 1.6s ease-in-out infinite;
+    body.is-mobile .piano {
+      height: 100%;
+      max-height: 100%;
     }
-  }
-  @keyframes rothint {
-    0%, 100% { transform: rotate(-18deg); }
-    50% { transform: rotate(8deg); }
+
+    /* bear: top of the right column */
+    body.is-mobile .pet-wrap {
+      grid-area: bear;
+      margin: 0;
+      height: auto;
+      align-self: center;
+      justify-self: center;
+      transform: scale(0.72);
+      transform-origin: center;
+    }
+
+    /* controls: bottom of the right column, stacked vertically */
+    body.is-mobile .controls {
+      grid-area: ctrl;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      justify-content: center;
+      gap: 8px;
+      padding: 4px 8px calc(6px + env(safe-area-inset-bottom));
+      max-width: none;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    body.is-mobile .controls .ctrl-group { justify-content: center; }
+    body.is-mobile .controls .jelly-select { max-width: none; flex: 1 1 auto; }
   }
 </style>
 </head>
@@ -712,13 +745,6 @@
     <button class="jelly" id="muteBtn">🔈 静音</button>
     <button class="jelly on" id="safeBtn">🧸 安全响度</button>
   </section>
-
-  <div class="rotate-hint" aria-hidden="true">
-    <div class="rotate-card">
-      <div class="rotate-emoji">📱</div>
-      竖着拿手机玩更好哦～<br/>请把屏幕转回竖屏
-    </div>
-  </div>
 
   <div class="tip" id="tip">
     <div class="tip-card">
