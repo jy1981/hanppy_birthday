@@ -32,7 +32,14 @@
     --font-round: 'Baloo 2', 'Fredoka', 'PingFang SC', 'Microsoft YaHei', 'Comic Sans MS', system-ui, sans-serif;
   }
 
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;   /* no iOS long-press callout */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
 
   html, body {
     margin: 0;
@@ -725,6 +732,34 @@
 <script>
 (function () {
   'use strict';
+
+  // ---------- Block interactions that break the play experience ----------
+  // Right-click / long-press context menu, text selection, native drag,
+  // and pinch / double-tap zoom. Keeps toddlers from accidentally opening
+  // menus, selecting text, or zooming the layout out of place.
+  function stop(e) { e.preventDefault(); }
+  document.addEventListener('contextmenu', stop);
+  document.addEventListener('selectstart', stop);
+  document.addEventListener('dragstart', stop);
+  document.addEventListener('gesturestart', stop);   // iOS Safari pinch-zoom
+  document.addEventListener('gesturechange', stop);
+  // block double-tap-to-zoom without killing normal taps
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    var now = Date.now();
+    if (now - lastTouchEnd < 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  // block ctrl/⌘ +/- and pinch wheel zoom on desktop
+  document.addEventListener('wheel', function (e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) &&
+        (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+      e.preventDefault();
+    }
+  });
 
   // ---------- Key layout: computer key -> {midi, name, isBlack} ----------
   // Range C4 .. E5 (one octave and a bit). MIDI: C4 = 60.
