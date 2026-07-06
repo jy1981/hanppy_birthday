@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>宝宝小钢琴 🎹</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --cream: #fffaf2;
+    --peach: #ffb3ba;
+    --peach-deep: #ff8a94;
+    --lemon: #ffe28a;
+    --mint: #a8e6cf;
+    --sky: #a0d8ef;
+    --lavender: #d4b3ff;
+    --candy-red: #ff9aa2;
+    --candy-orange: #ffb997;
+    --candy-yellow: #ffec99;
+    --candy-green: #b5ead7;
+    --candy-blue: #a2d2ff;
+    --candy-purple: #cdb4ff;
+    --candy-pink: #ffc8dd;
+    --ink: #5b4a6a;
+    --ink-soft: #8a7aa0;
+    --white-key: #fffdf9;
+    --black-key: #6b5b7b;
+    --font-round: 'Baloo 2', 'Fredoka', 'PingFang SC', 'Microsoft YaHei', 'Comic Sans MS', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: var(--font-round);
+    color: var(--ink);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 15% 20%, #ffe6f0 0%, transparent 45%),
+      radial-gradient(circle at 85% 15%, #e6f7ff 0%, transparent 45%),
+      radial-gradient(circle at 50% 100%, #fff6d6 0%, transparent 55%),
+      linear-gradient(160deg, #fef3ff 0%, #eafcff 50%, #fff9ec 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 100dvh;
+    position: relative;
+  }
+
+  /* floating background decorations */
+  .sky {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .floaty {
+    position: absolute;
+    font-size: 2.2rem;
+    opacity: 0.5;
+    animation: drift linear infinite;
+    will-change: transform;
+    filter: saturate(1.1);
+  }
+  @keyframes drift {
+    0%   { transform: translateY(110vh) translateX(0) rotate(0deg); }
+    100% { transform: translateY(-20vh) translateX(30px) rotate(360deg); }
+  }
+
+  /* ===== Header ===== */
+  header {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 18px 16px 4px;
+  }
+  .title {
+    font-weight: 800;
+    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    letter-spacing: 1px;
+    color: #ff7aa2;
+    text-shadow: 0 3px 0 #ffd6e3, 0 6px 10px rgba(255,122,162,0.25);
+    margin: 0;
+  }
+  .subtitle {
+    margin: 4px 0 0;
+    font-size: clamp(0.8rem, 2vw, 1rem);
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+
+  /* ===== Cute pet ===== */
+  .pet-wrap {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    margin-top: 6px;
+  }
+  .pet {
+    width: 118px;
+    height: 108px;
+    position: relative;
+    transition: transform 0.12s ease;
+    filter: drop-shadow(0 10px 12px rgba(150,120,180,0.25));
+  }
+  .pet.happy { animation: bop 0.32s ease; }
+  @keyframes bop {
+    0% { transform: translateY(0) scale(1); }
+    35% { transform: translateY(-14px) scale(1.06, 0.96); }
+    70% { transform: translateY(0) scale(0.98, 1.02); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  .pet .ear {
+    position: absolute;
+    width: 40px; height: 40px;
+    background: #c79a6b;
+    border-radius: 50%;
+    top: 2px;
+  }
+  .pet .ear.left { left: 8px; }
+  .pet .ear.right { right: 8px; }
+  .pet .ear::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    background: #f4c6a0;
+    border-radius: 50%;
+    top: 10px; left: 10px;
+  }
+  .pet .face {
+    position: absolute;
+    left: 50%;
+    top: 20px;
+    transform: translateX(-50%);
+    width: 96px; height: 84px;
+    background: #dcae7d;
+    border-radius: 48% 48% 46% 46%;
+  }
+  .pet .snout {
+    position: absolute;
+    left: 50%; top: 44px;
+    transform: translateX(-50%);
+    width: 52px; height: 40px;
+    background: #f6dab5;
+    border-radius: 50%;
+  }
+  .pet .nose {
+    position: absolute;
+    left: 50%; top: 50px;
+    transform: translateX(-50%);
+    width: 16px; height: 12px;
+    background: #7a5a45;
+    border-radius: 50%;
+  }
+  .pet .eye {
+    position: absolute;
+    top: 34px;
+    width: 12px; height: 14px;
+    background: #4a3a2f;
+    border-radius: 50%;
+    animation: blink 4s infinite;
+  }
+  .pet .eye.left { left: 30px; }
+  .pet .eye.right { right: 30px; }
+  @keyframes blink {
+    0%, 92%, 100% { transform: scaleY(1); }
+    96% { transform: scaleY(0.1); }
+  }
+  .pet .cheek {
+    position: absolute;
+    top: 48px;
+    width: 15px; height: 10px;
+    background: #ffb3ba;
+    border-radius: 50%;
+    opacity: 0.8;
+  }
+  .pet .cheek.left { left: 18px; }
+  .pet .cheek.right { right: 18px; }
+  .pet .mouth {
+    position: absolute;
+    left: 50%; top: 60px;
+    transform: translateX(-50%);
+    width: 14px; height: 7px;
+    border-bottom: 3px solid #7a5a45;
+    border-radius: 0 0 8px 8px;
+    transition: all 0.15s;
+  }
+  .pet.happy .mouth {
+    width: 22px; height: 12px;
+    border-bottom-width: 4px;
+  }
+
+  /* ===== Piano ===== */
+  .stage {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 10px;
+  }
+
+  .piano-shell {
+    position: relative;
+    background: linear-gradient(180deg, #ffd1e8 0%, #ffb8d9 100%);
+    padding: 16px 16px 22px;
+    border-radius: 28px;
+    box-shadow:
+      0 12px 0 #e690b8,
+      0 22px 34px rgba(180,90,130,0.3),
+      inset 0 3px 6px rgba(255,255,255,0.6);
+    max-width: min(96vw, 940px);
+    width: 100%;
+  }
+
+  .piano {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    --gap: 6px;
+    --ww: clamp(40px, 7.2vw, 66px);
+    --bw: calc(var(--ww) * 0.62);
+    gap: var(--gap);
+    height: clamp(190px, 34vh, 300px);
+    padding: 10px;
+    background: #fff4fa;
+    border-radius: 18px;
+    box-shadow: inset 0 4px 10px rgba(180,120,150,0.25);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* each white key lives in a wrapper; its black key (if any) is
+     absolutely anchored to the wrapper's right edge so alignment
+     stays correct at every viewport width */
+  .wkey-wrap {
+    position: relative;
+    flex: 0 0 auto;
+    width: var(--ww);
+    height: 100%;
+  }
+
+  .key {
+    position: relative;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    transition: transform 0.06s ease, filter 0.06s ease, box-shadow 0.06s ease;
+    will-change: transform;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 12px;
+  }
+
+  .key.white {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #ffffff 0%, var(--white-key) 70%, #fdeef6 100%);
+    border-radius: 10px 10px 16px 16px;
+    box-shadow:
+      0 6px 0 var(--kb, #f2c6dd),
+      0 9px 12px rgba(150,110,140,0.22),
+      inset 0 2px 3px rgba(255,255,255,0.9);
+    z-index: 1;
+  }
+  .key.white .keylabel { color: var(--ink); }
+
+  .key.black {
+    position: absolute;
+    top: 0;
+    /* percentage-based so black keys track white-key width at any layout,
+       including flex-filled mobile keys. center = wrapper_width + gap/2 */
+    left: calc(100% + var(--gap) / 2 - 31%);
+    width: 62%;
+    height: 62%;
+    background: linear-gradient(180deg, #8a76a0 0%, var(--black-key) 100%);
+    border-radius: 8px 8px 12px 12px;
+    box-shadow:
+      0 6px 0 #4d3f5c,
+      0 9px 12px rgba(80,60,100,0.4),
+      inset 0 2px 3px rgba(255,255,255,0.25);
+    z-index: 3;
+    color: #fff;
+    padding-bottom: 10px;
+  }
+
+  .key.active.white {
+    transform: translateY(5px);
+    box-shadow:
+      0 1px 0 var(--kb, #f2c6dd),
+      0 3px 6px rgba(150,110,140,0.25),
+      inset 0 2px 3px rgba(255,255,255,0.9),
+      0 0 22px 4px var(--glow, #ffd76a);
+    filter: brightness(1.04);
+  }
+  .key.active.black {
+    transform: translateY(5px);
+    box-shadow:
+      0 1px 0 #4d3f5c,
+      0 3px 6px rgba(80,60,100,0.4),
+      0 0 20px 4px var(--glow, #ffd76a);
+    filter: brightness(1.25);
+  }
+
+  .keylabel {
+    font-size: clamp(0.7rem, 1.6vw, 0.95rem);
+    font-weight: 700;
+    pointer-events: none;
+    background: rgba(255,255,255,0.55);
+    padding: 2px 7px;
+    border-radius: 20px;
+    line-height: 1;
+  }
+  .key.black .keylabel { background: rgba(255,255,255,0.22); }
+  /* music-note labels (mobile) */
+  .keylabel.note-symbol {
+    background: none;
+    font-size: clamp(1rem, 2.6vw, 1.5rem);
+    padding: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.12);
+  }
+  .note-name {
+    font-size: 0.62rem;
+    opacity: 0.55;
+    margin-top: 3px;
+    pointer-events: none;
+  }
+
+  /* fullscreen toggle button */
+  .fs-btn {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 60;
+    width: 46px;
+    height: 46px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: #fff;
+    background: linear-gradient(180deg, #ffb0d4 0%, #ff8fc0 100%);
+    box-shadow: 0 4px 0 #e6739a, 0 6px 12px rgba(230,110,150,0.35);
+    transition: transform 0.08s ease, filter 0.08s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .fs-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #e6739a; }
+  .fs-btn.is-fs {
+    background: linear-gradient(180deg, #cbb8e6 0%, #a98fd0 100%);
+    box-shadow: 0 4px 0 #7f66a8, 0 6px 12px rgba(120,90,170,0.35);
+  }
+
+  /* bubbles */
+  .bubble {
+    position: fixed;
+    z-index: 50;
+    font-size: 1.8rem;
+    pointer-events: none;
+    animation: rise 1s ease-out forwards;
+    will-change: transform, opacity;
+  }
+  @keyframes rise {
+    0%   { transform: translate(-50%, 0) scale(0.4) rotate(0deg); opacity: 0; }
+    15%  { opacity: 1; transform: translate(-50%, -10px) scale(1.1) rotate(-8deg); }
+    100% { transform: translate(-50%, -150px) scale(0.9) rotate(14deg); opacity: 0; }
+  }
+
+  /* ===== Controls ===== */
+  .controls {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 14px;
+    padding: 14px 16px 22px;
+    max-width: 940px;
+  }
+  .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.7);
+    padding: 8px 14px;
+    border-radius: 999px;
+    box-shadow: 0 4px 0 rgba(210,180,220,0.5), 0 6px 12px rgba(180,150,200,0.2);
+  }
+  .ctrl-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .jelly {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--ink);
+    background: linear-gradient(180deg, #fff 0%, #ffe9f4 100%);
+    padding: 8px 14px;
+    border-radius: 999px;
+    box-shadow: 0 4px 0 #f3c3dc, 0 6px 10px rgba(200,140,170,0.25);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.2s;
+  }
+  .jelly:active { transform: translateY(4px); box-shadow: 0 1px 0 #f3c3dc; }
+  .jelly.on {
+    background: linear-gradient(180deg, #fff6c2 0%, #ffe28a 100%);
+    box-shadow: 0 4px 0 #e6c04c, 0 6px 10px rgba(210,170,60,0.3);
+  }
+
+  /* dropdown menus styled like jelly buttons */
+  .jelly-select {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--ink);
+    background: linear-gradient(180deg, #fff 0%, #ffe9f4 100%);
+    padding: 9px 34px 9px 16px;
+    border-radius: 999px;
+    box-shadow: 0 4px 0 #f3c3dc, 0 6px 10px rgba(200,140,170,0.25);
+    -webkit-appearance: none;
+    appearance: none;
+    background-image:
+      linear-gradient(180deg, #fff 0%, #ffe9f4 100%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23b98fb0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat, no-repeat;
+    background-position: center, right 12px center;
+    background-size: auto, 14px 14px;
+    max-width: 60vw;
+    text-overflow: ellipsis;
+  }
+  .jelly-select.song-select {
+    background-image:
+      linear-gradient(180deg, #b7f5d8 0%, #8fe6bf 100%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23459a76' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    box-shadow: 0 4px 0 #5cc79a, 0 6px 10px rgba(80,190,150,0.3);
+  }
+  .jelly-select.song-select.playing {
+    background-image:
+      linear-gradient(180deg, #ffd1dc 0%, #ff9ec2 100%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23c25580' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    box-shadow: 0 4px 0 #e6739a, 0 6px 10px rgba(230,110,150,0.3);
+  }
+
+  .song-btn {
+    background: linear-gradient(180deg, #b7f5d8 0%, #8fe6bf 100%);
+    box-shadow: 0 4px 0 #5cc79a, 0 6px 10px rgba(80,190,150,0.3);
+    font-size: 0.92rem;
+    padding: 9px 16px;
+  }
+  .song-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #5cc79a; }
+  .song-btn.playing {
+    background: linear-gradient(180deg, #ffd1dc 0%, #ff9ec2 100%);
+    box-shadow: 0 4px 0 #e6739a, 0 6px 10px rgba(230,110,150,0.3);
+    animation: playpulse 1s ease-in-out infinite;
+  }
+  @keyframes playpulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 120px;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--peach) 0%, var(--lemon) 100%);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #ff9ec2;
+    box-shadow: 0 2px 6px rgba(200,120,160,0.4);
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #ff9ec2;
+    cursor: pointer;
+  }
+
+  /* onboarding tip */
+  .tip {
+    position: fixed;
+    z-index: 80;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(90,70,110,0.35);
+    backdrop-filter: blur(3px);
+  }
+  .tip.hidden { display: none; }
+  .tip-card {
+    background: var(--cream);
+    padding: 28px 26px;
+    border-radius: 26px;
+    text-align: center;
+    max-width: 320px;
+    box-shadow: 0 16px 40px rgba(120,90,150,0.35);
+    animation: pop 0.4s cubic-bezier(.2,1.4,.5,1);
+  }
+  @keyframes pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .tip-card h2 { margin: 8px 0 6px; color: #ff7aa2; font-size: 1.4rem; }
+  .tip-card p { margin: 6px 0 18px; color: var(--ink-soft); font-weight: 600; line-height: 1.5; }
+  .tip-card .big-emoji { font-size: 3rem; }
+
+  @media (max-width: 560px) {
+    .piano { gap: 5px; }
+    .ctrl-label { font-size: 0.78rem; }
+  }
+
+  /* =========================================================
+     MOBILE LAYOUT (touch devices, added via body.is-mobile)
+     Piano is the star: it fills available height. On landscape
+     we hide the bear + header so the keyboard gets the whole
+     screen. Uses dvh + safe-area insets so nothing hides behind
+     the browser toolbars.
+     ========================================================= */
+  body.is-mobile {
+    justify-content: flex-start;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  body.is-mobile header { padding: 8px 16px 2px; }
+  body.is-mobile .title { font-size: 1.4rem; text-shadow: 0 2px 0 #ffd6e3; }
+  body.is-mobile .subtitle { font-size: 0.75rem; }
+  /* keep the bear's internal geometry intact — just scale the whole thing
+     down (resizing the container broke the fixed-px face/ears layout) */
+  body.is-mobile .pet-wrap {
+    margin-top: 2px;
+    height: 82px;
+    transform: scale(0.74);
+    transform-origin: center top;
+  }
+
+  /* stage grows to fill leftover space; piano is centered and shorter */
+  body.is-mobile .stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    justify-content: center;
+    padding: 4px 8px;
+  }
+  body.is-mobile .piano-shell {
+    max-width: 100%;
+    width: 100%;
+    padding: 12px 10px 16px;
+  }
+  body.is-mobile .piano {
+    width: 100%;
+    height: clamp(170px, 34vh, 300px); /* shorter keys */
+    gap: 5px;
+    justify-content: stretch;
+    overflow: hidden;
+  }
+  /* keys stretch to fill the width evenly instead of fixed width */
+  body.is-mobile .wkey-wrap {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  /* controls: compact, wrap onto a couple of rows */
+  body.is-mobile .controls {
+    flex: 0 0 auto;
+    gap: 8px 10px;
+    padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+    width: 100%;
+  }
+  body.is-mobile .jelly,
+  body.is-mobile .jelly-select { font-size: 0.85rem; }
+
+  /* ===== Portrait-only: ask to rotate when landscape ===== */
+  .rotate-hint { display: none; }
+  @media (orientation: landscape) {
+    body.is-mobile .rotate-hint {
+      display: flex;
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background:
+        radial-gradient(circle at 50% 40%, #fff2f9 0%, transparent 60%),
+        linear-gradient(160deg, #fde3f4 0%, #e6f7ff 100%);
+    }
+    body.is-mobile .rotate-card {
+      background: var(--cream);
+      padding: 24px 30px;
+      border-radius: 26px;
+      box-shadow: 0 14px 34px rgba(120,90,150,0.3);
+      color: var(--ink-soft);
+      font-weight: 700;
+      line-height: 1.6;
+    }
+    body.is-mobile .rotate-emoji {
+      font-size: 3.4rem;
+      animation: rothint 1.6s ease-in-out infinite;
+    }
+  }
+  @keyframes rothint {
+    0%, 100% { transform: rotate(-18deg); }
+    50% { transform: rotate(8deg); }
+  }
+</style>
+</head>
+<body>
+  <div class="sky" id="sky" aria-hidden="true"></div>
+
+  <button class="fs-btn" id="fsBtn" aria-label="全屏" title="全屏">⛶</button>
+
+  <header>
+    <h1 class="title">宝宝小钢琴</h1>
+    <p class="subtitle">用键盘弹一弹，或者点点屏幕上的琴键 🎵</p>
+  </header>
+
+  <div class="pet-wrap">
+    <div class="pet" id="pet" aria-hidden="true">
+      <div class="ear left"></div>
+      <div class="ear right"></div>
+      <div class="face"></div>
+      <div class="snout"></div>
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+      <div class="cheek left"></div>
+      <div class="cheek right"></div>
+      <div class="nose"></div>
+      <div class="mouth"></div>
+    </div>
+  </div>
+
+  <main class="stage">
+    <div class="piano-shell">
+      <div class="piano" id="piano"></div>
+    </div>
+  </main>
+
+  <section class="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">🎼 儿歌</span>
+      <select class="jelly-select song-select" id="songSelect" aria-label="选择儿歌"></select>
+      <button class="jelly song-btn" id="playBtn">▶️ 播放</button>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">🎨 音色</span>
+      <select class="jelly-select" id="toneSelect" aria-label="选择音色">
+        <option value="piano">🎹 钢琴</option>
+        <option value="musicbox">🎶 八音盒</option>
+        <option value="soft">🌈 软萌</option>
+        <option value="flute">🪈 长笛</option>
+        <option value="guitar">🎸 吉他</option>
+        <option value="brass">🎺 小号</option>
+        <option value="bell">🔔 铃铛</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">🔊 音量</span>
+      <input type="range" id="volume" min="0" max="100" value="65" />
+    </div>
+    <button class="jelly" id="muteBtn">🔈 静音</button>
+    <button class="jelly on" id="safeBtn">🧸 安全响度</button>
+  </section>
+
+  <div class="rotate-hint" aria-hidden="true">
+    <div class="rotate-card">
+      <div class="rotate-emoji">📱</div>
+      竖着拿手机玩更好哦～<br/>请把屏幕转回竖屏
+    </div>
+  </div>
+
+  <div class="tip" id="tip">
+    <div class="tip-card">
+      <div class="big-emoji">🐻🎹</div>
+      <h2>一起来弹钢琴吧！</h2>
+      <p>敲敲电脑键盘上的字母，<br/>或者用手点屏幕上的琴键，<br/>就能弹出好听的声音哦～</p>
+      <button class="jelly on" id="startBtn" style="font-size:1.1rem;padding:12px 28px;">开始玩（全屏）✨</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Key layout: computer key -> {midi, name, isBlack} ----------
+  // Range C4 .. E5 (one octave and a bit). MIDI: C4 = 60.
+  var KEYMAP = [
+    { code: 'KeyA', midi: 60, name: 'C',  black: false },
+    { code: 'KeyW', midi: 61, name: 'C#', black: true  },
+    { code: 'KeyS', midi: 62, name: 'D',  black: false },
+    { code: 'KeyE', midi: 63, name: 'D#', black: true  },
+    { code: 'KeyD', midi: 64, name: 'E',  black: false },
+    { code: 'KeyF', midi: 65, name: 'F',  black: false },
+    { code: 'KeyT', midi: 66, name: 'F#', black: true  },
+    { code: 'KeyG', midi: 67, name: 'G',  black: false },
+    { code: 'KeyY', midi: 68, name: 'G#', black: true  },
+    { code: 'KeyH', midi: 69, name: 'A',  black: false },
+    { code: 'KeyU', midi: 70, name: 'A#', black: true  },
+    { code: 'KeyJ', midi: 71, name: 'B',  black: false },
+    { code: 'KeyK', midi: 72, name: 'C',  black: false },
+    { code: 'KeyO', midi: 73, name: 'C#', black: true  },
+    { code: 'KeyL', midi: 74, name: 'D',  black: false },
+    { code: 'KeyP', midi: 75, name: 'D#', black: true  },
+    { code: 'Semicolon', midi: 76, name: 'E', black: false }
+  ];
+
+  var LABELS = {
+    KeyA: 'A', KeyW: 'W', KeyS: 'S', KeyE: 'E', KeyD: 'D', KeyF: 'F',
+    KeyT: 'T', KeyG: 'G', KeyY: 'Y', KeyH: 'H', KeyU: 'U', KeyJ: 'J',
+    KeyK: 'K', KeyO: 'O', KeyL: 'L', KeyP: 'P', Semicolon: ';'
+  };
+
+  var WHITE_COLORS = ['#ff9aa2','#ffb997','#ffec99','#b5ead7','#a2d2ff','#cdb4ff','#ffc8dd'];
+  var GLOW_COLORS  = ['#ffd76a','#ff9ec2','#8ad7ff','#a8f0c6','#e0b3ff','#ffc07a'];
+  var BUBBLE_EMOJI = ['🎵','🎶','⭐','💕','🌟','🎈','🍭','🌈','✨','🐤'];
+  // cute music-note glyphs shown on touch devices instead of keyboard letters
+  var NOTE_SYMBOLS = ['🎵','🎶','🎵','🎶','🎵','🎶','🎵'];
+
+  // On phones/tablets there is no physical keyboard, so keyboard letters are
+  // meaningless — show music symbols instead. Detect via UA + touch capability
+  // (iPadOS reports as Mac, so also check maxTouchPoints for that case).
+  // Manual override: ?ui=mobile or ?ui=pc forces a layout (handy for testing
+  // or when UA detection guesses wrong).
+  var IS_MOBILE = (function () {
+    var forced = (location.search.match(/[?&]ui=(mobile|pc)/) || [])[1];
+    if (forced === 'mobile') return true;
+    if (forced === 'pc') return false;
+    var ua = navigator.userAgent || '';
+    var uaMobile = /Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile|Mobile|Silk/i.test(ua);
+    var touchMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    return uaMobile || touchMac;
+  })();
+
+  // ---------- Audio engine ----------
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var ctx = null;
+  var masterGain = null;
+  var activeVoices = {}; // midi -> voice
+  var settings = {
+    volume: 0.65,
+    muted: false,
+    tone: 'piano',
+    safe: true
+  };
+  var SAFE_CAP = 0.55; // max master gain in safe mode
+
+  function ensureAudio() {
+    if (!ctx) {
+      ctx = new AudioCtx();
+      masterGain = ctx.createGain();
+      masterGain.connect(ctx.destination);
+      applyMasterGain();
+    }
+    if (ctx.state === 'suspended') { ctx.resume(); }
+  }
+
+  function targetMaster() {
+    if (settings.muted) return 0;
+    var v = settings.volume;
+    var cap = settings.safe ? SAFE_CAP : 0.9;
+    return Math.min(v, 1) * cap;
+  }
+
+  function applyMasterGain() {
+    if (!masterGain) return;
+    var now = ctx.currentTime;
+    masterGain.gain.cancelScheduledValues(now);
+    masterGain.gain.setTargetAtTime(targetMaster(), now, 0.02);
+  }
+
+  function midiToFreq(m) {
+    return 440 * Math.pow(2, (m - 69) / 12);
+  }
+
+  function noteOn(midi) {
+    ensureAudio();
+    if (activeVoices[midi]) return; // already sounding
+    var freq = midiToFreq(midi);
+    var now = ctx.currentTime;
+
+    var voiceGain = ctx.createGain();
+    voiceGain.connect(masterGain);
+
+    var oscs = [];
+    var tone = settings.tone;
+    var attack, decayTo, sustain, release;
+    var decayDur = 1.4; // percussive tail length when sustain == 0
+
+    if (tone === 'piano') {
+      // triangle + soft sine harmonic
+      var o1 = ctx.createOscillator();
+      o1.type = 'triangle'; o1.frequency.value = freq;
+      var o2 = ctx.createOscillator();
+      o2.type = 'sine'; o2.frequency.value = freq * 2;
+      var h = ctx.createGain(); h.gain.value = 0.18; o2.connect(h); h.connect(voiceGain);
+      o1.connect(voiceGain);
+      oscs = [o1, o2];
+      attack = 0.006; sustain = 0.28; decayTo = 0.5; release = 0.5;
+    } else if (tone === 'musicbox') {
+      var m1 = ctx.createOscillator();
+      m1.type = 'sine'; m1.frequency.value = freq;
+      var m2 = ctx.createOscillator();
+      m2.type = 'sine'; m2.frequency.value = freq * 3.01;
+      var mh = ctx.createGain(); mh.gain.value = 0.12; m2.connect(mh); mh.connect(voiceGain);
+      m1.connect(voiceGain);
+      oscs = [m1, m2];
+      attack = 0.004; sustain = 0.0; decayTo = 0.35; release = 0.25; decayDur = 1.4;
+    } else if (tone === 'soft') {
+      var lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 1200; lp.Q.value = 0.6;
+      var s1 = ctx.createOscillator();
+      s1.type = 'square'; s1.frequency.value = freq;
+      var det = ctx.createOscillator();
+      det.type = 'sawtooth'; det.frequency.value = freq * 1.005;
+      var dg = ctx.createGain(); dg.gain.value = 0.25;
+      s1.connect(lp); det.connect(dg); dg.connect(lp); lp.connect(voiceGain);
+      oscs = [s1, det];
+      attack = 0.02; sustain = 0.5; decayTo = 0.6; release = 0.35;
+    } else if (tone === 'flute') {
+      // breathy pure tone with gentle vibrato
+      var f1 = ctx.createOscillator();
+      f1.type = 'sine'; f1.frequency.value = freq;
+      var f2 = ctx.createOscillator();
+      f2.type = 'sine'; f2.frequency.value = freq * 2;
+      var fh = ctx.createGain(); fh.gain.value = 0.08; f2.connect(fh); fh.connect(voiceGain);
+      f1.connect(voiceGain);
+      var vib = ctx.createOscillator();
+      vib.type = 'sine'; vib.frequency.value = 5.5;
+      var vibGain = ctx.createGain(); vibGain.gain.value = freq * 0.006;
+      vib.connect(vibGain); vibGain.connect(f1.frequency);
+      oscs = [f1, f2, vib];
+      attack = 0.09; sustain = 0.6; decayTo = 0.85; release = 0.35;
+    } else if (tone === 'guitar') {
+      // plucked string: bright saw through lowpass, percussive
+      var glp = ctx.createBiquadFilter();
+      glp.type = 'lowpass'; glp.frequency.value = 2400; glp.Q.value = 0.7;
+      var g1 = ctx.createOscillator();
+      g1.type = 'sawtooth'; g1.frequency.value = freq;
+      var g2 = ctx.createOscillator();
+      g2.type = 'triangle'; g2.frequency.value = freq * 2.005;
+      var gg = ctx.createGain(); gg.gain.value = 0.2; g2.connect(gg); gg.connect(glp);
+      g1.connect(glp); glp.connect(voiceGain);
+      oscs = [g1, g2];
+      attack = 0.004; sustain = 0.0; decayTo = 0.3; release = 0.2; decayDur = 1.3;
+    } else if (tone === 'brass') {
+      // bright sustained horn
+      var blp = ctx.createBiquadFilter();
+      blp.type = 'lowpass'; blp.frequency.value = 3000; blp.Q.value = 0.8;
+      var b1 = ctx.createOscillator();
+      b1.type = 'sawtooth'; b1.frequency.value = freq;
+      var b2 = ctx.createOscillator();
+      b2.type = 'square'; b2.frequency.value = freq;
+      var bg = ctx.createGain(); bg.gain.value = 0.14; b2.connect(bg); bg.connect(blp);
+      b1.connect(blp); blp.connect(voiceGain);
+      oscs = [b1, b2];
+      attack = 0.045; sustain = 0.4; decayTo = 0.7; release = 0.28;
+    } else { // bell
+      // inharmonic partials, shimmering percussive tail
+      var be1 = ctx.createOscillator();
+      be1.type = 'sine'; be1.frequency.value = freq;
+      var be2 = ctx.createOscillator();
+      be2.type = 'sine'; be2.frequency.value = freq * 2.76;
+      var beg2 = ctx.createGain(); beg2.gain.value = 0.4; be2.connect(beg2); beg2.connect(voiceGain);
+      var be3 = ctx.createOscillator();
+      be3.type = 'sine'; be3.frequency.value = freq * 5.4;
+      var beg3 = ctx.createGain(); beg3.gain.value = 0.16; be3.connect(beg3); beg3.connect(voiceGain);
+      be1.connect(voiceGain);
+      oscs = [be1, be2, be3];
+      attack = 0.003; sustain = 0.0; decayTo = 0.3; release = 0.3; decayDur = 2.6;
+    }
+
+    var peak = 0.34;
+    voiceGain.gain.setValueAtTime(0.0001, now);
+    voiceGain.gain.linearRampToValueAtTime(peak, now + attack);
+    if (sustain > 0) {
+      voiceGain.gain.linearRampToValueAtTime(peak * decayTo, now + attack + sustain);
+    } else {
+      // percussive: decay toward zero
+      voiceGain.gain.exponentialRampToValueAtTime(0.0006, now + decayDur);
+    }
+
+    oscs.forEach(function (o) { o.start(now); });
+
+    activeVoices[midi] = { gain: voiceGain, oscs: oscs, release: release, started: now };
+  }
+
+  function noteOff(midi) {
+    var v = activeVoices[midi];
+    if (!v) return;
+    delete activeVoices[midi];
+    var now = ctx.currentTime;
+    var g = v.gain.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(Math.max(g.value, 0.0002), now);
+    g.exponentialRampToValueAtTime(0.0005, now + v.release);
+    var stopAt = now + v.release + 0.05;
+    v.oscs.forEach(function (o) { try { o.stop(stopAt); } catch (e) {} });
+  }
+
+  // ---------- Build keyboard DOM ----------
+  var piano = document.getElementById('piano');
+  var keyEls = {}; // midi -> element
+  var whiteIndex = 0;
+  var lastWrap = null; // wrapper of the most recent white key
+
+  if (IS_MOBILE) {
+    piano.classList.add('mobile');
+    document.body.classList.add('is-mobile');
+  }
+
+  KEYMAP.forEach(function (k) {
+    var el = document.createElement('button');
+    el.className = 'key ' + (k.black ? 'black' : 'white');
+    el.setAttribute('data-midi', k.midi);
+    el.setAttribute('aria-label', k.name + ' 键');
+    el.style.setProperty('--glow', GLOW_COLORS[k.midi % GLOW_COLORS.length]);
+
+    var lab = document.createElement('span');
+    lab.className = 'keylabel';
+    if (IS_MOBILE) {
+      // touch devices: show a cute music symbol instead of the keyboard letter
+      lab.classList.add('note-symbol');
+      lab.textContent = k.black ? '🎶' : NOTE_SYMBOLS[whiteIndex % NOTE_SYMBOLS.length];
+    } else {
+      lab.textContent = LABELS[k.code] || '';
+    }
+    el.appendChild(lab);
+
+    if (!k.black) {
+      var c = WHITE_COLORS[whiteIndex % WHITE_COLORS.length];
+      el.style.setProperty('--kb', c);
+      whiteIndex++;
+
+      var nn = document.createElement('span');
+      nn.className = 'note-name';
+      nn.textContent = k.name;
+      el.appendChild(nn);
+
+      var wrap = document.createElement('div');
+      wrap.className = 'wkey-wrap';
+      wrap.appendChild(el);
+      piano.appendChild(wrap);
+      lastWrap = wrap;
+    } else {
+      // anchor the black key to the right edge of the preceding white key
+      if (lastWrap) lastWrap.appendChild(el);
+      else piano.appendChild(el);
+    }
+
+    keyEls[k.midi] = el;
+  });
+
+  // ---------- Visual feedback ----------
+  var pet = document.getElementById('pet');
+  var petTimer = null;
+  function cheerPet() {
+    pet.classList.remove('happy');
+    void pet.offsetWidth; // reflow to restart animation
+    pet.classList.add('happy');
+    clearTimeout(petTimer);
+    petTimer = setTimeout(function () { pet.classList.remove('happy'); }, 340);
+  }
+
+  var bubbleCount = 0;
+  var MAX_BUBBLES = 24;
+  function spawnBubble(el) {
+    if (bubbleCount >= MAX_BUBBLES) return;
+    var rect = el.getBoundingClientRect();
+    var b = document.createElement('div');
+    b.className = 'bubble';
+    b.textContent = BUBBLE_EMOJI[Math.floor(Math.random() * BUBBLE_EMOJI.length)];
+    b.style.left = (rect.left + rect.width / 2) + 'px';
+    b.style.top = (rect.top + 8) + 'px';
+    b.style.fontSize = (1.4 + Math.random() * 1.1) + 'rem';
+    document.body.appendChild(b);
+    bubbleCount++;
+    b.addEventListener('animationend', function () {
+      b.remove();
+      bubbleCount--;
+    });
+  }
+
+  function pressVisual(midi) {
+    var el = keyEls[midi];
+    if (!el) return;
+    el.classList.add('active');
+    spawnBubble(el);
+    cheerPet();
+  }
+  function releaseVisual(midi) {
+    var el = keyEls[midi];
+    if (el) el.classList.remove('active');
+  }
+
+  // ---------- Trigger helpers ----------
+  function pressNote(midi) {
+    noteOn(midi);
+    pressVisual(midi);
+  }
+  function releaseNote(midi) {
+    noteOff(midi);
+    releaseVisual(midi);
+  }
+
+  // ---------- Keyboard input ----------
+  var codeToMidi = {};
+  KEYMAP.forEach(function (k) { codeToMidi[k.code] = k.midi; });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.repeat) return;
+    var midi = codeToMidi[e.code];
+    if (midi === undefined) return;
+    e.preventDefault();
+    pressNote(midi);
+  });
+  window.addEventListener('keyup', function (e) {
+    var midi = codeToMidi[e.code];
+    if (midi === undefined) return;
+    e.preventDefault();
+    releaseNote(midi);
+  });
+
+  // ---------- Pointer / touch input ----------
+  Object.keys(keyEls).forEach(function (midiStr) {
+    var midi = parseInt(midiStr, 10);
+    var el = keyEls[midi];
+
+    el.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      if (el.setPointerCapture) { try { el.setPointerCapture(e.pointerId); } catch (x) {} }
+      pressNote(midi);
+    });
+    function up(e) { e.preventDefault(); releaseNote(midi); }
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', function (e) {
+      // release when finger/mouse drags off while pressed
+      if (activeVoices[midi]) releaseNote(midi);
+    });
+  });
+
+  // ---------- Controls ----------
+  var volume = document.getElementById('volume');
+  volume.addEventListener('input', function () {
+    settings.volume = parseInt(volume.value, 10) / 100;
+    applyMasterGain();
+  });
+
+  var muteBtn = document.getElementById('muteBtn');
+  muteBtn.addEventListener('click', function () {
+    settings.muted = !settings.muted;
+    muteBtn.textContent = settings.muted ? '🔇 已静音' : '🔈 静音';
+    muteBtn.classList.toggle('on', settings.muted);
+    ensureAudio();
+    applyMasterGain();
+  });
+
+  var toneSelect = document.getElementById('toneSelect');
+  toneSelect.value = settings.tone;
+  toneSelect.addEventListener('change', function () {
+    settings.tone = toneSelect.value;
+  });
+
+  var safeBtn = document.getElementById('safeBtn');
+  safeBtn.addEventListener('click', function () {
+    settings.safe = !settings.safe;
+    safeBtn.textContent = settings.safe ? '🧸 安全响度' : '🔊 全音量';
+    safeBtn.classList.toggle('on', settings.safe);
+    applyMasterGain();
+  });
+
+  // ---------- Built-in songs (nursery rhymes) ----------
+  // note = { m: midiNumber, b: beats (1 = one quarter note) }
+  // All melodies transposed to fit the keyboard range (midi 60..76).
+  var SONGS = [
+    {
+      id: 'twinkle', title: '小星星', emoji: '⭐', beat: 470,
+      notes: [
+        { m: 60, b: 1 }, { m: 60, b: 1 }, { m: 67, b: 1 }, { m: 67, b: 1 },
+        { m: 69, b: 1 }, { m: 69, b: 1 }, { m: 67, b: 2 },
+        { m: 65, b: 1 }, { m: 65, b: 1 }, { m: 64, b: 1 }, { m: 64, b: 1 },
+        { m: 62, b: 1 }, { m: 62, b: 1 }, { m: 60, b: 2 },
+        { m: 67, b: 1 }, { m: 67, b: 1 }, { m: 65, b: 1 }, { m: 65, b: 1 },
+        { m: 64, b: 1 }, { m: 64, b: 1 }, { m: 62, b: 2 },
+        { m: 67, b: 1 }, { m: 67, b: 1 }, { m: 65, b: 1 }, { m: 65, b: 1 },
+        { m: 64, b: 1 }, { m: 64, b: 1 }, { m: 62, b: 2 },
+        { m: 60, b: 1 }, { m: 60, b: 1 }, { m: 67, b: 1 }, { m: 67, b: 1 },
+        { m: 69, b: 1 }, { m: 69, b: 1 }, { m: 67, b: 2 },
+        { m: 65, b: 1 }, { m: 65, b: 1 }, { m: 64, b: 1 }, { m: 64, b: 1 },
+        { m: 62, b: 1 }, { m: 62, b: 1 }, { m: 60, b: 2 }
+      ]
+    },
+    {
+      id: 'birthday', title: '生日快乐', emoji: '🎂', beat: 430,
+      notes: [
+        { m: 60, b: 0.75 }, { m: 60, b: 0.25 }, { m: 62, b: 1 }, { m: 60, b: 1 }, { m: 65, b: 1 }, { m: 64, b: 2 },
+        { m: 60, b: 0.75 }, { m: 60, b: 0.25 }, { m: 62, b: 1 }, { m: 60, b: 1 }, { m: 67, b: 1 }, { m: 65, b: 2 },
+        { m: 60, b: 0.75 }, { m: 60, b: 0.25 }, { m: 72, b: 1 }, { m: 69, b: 1 }, { m: 65, b: 1 }, { m: 64, b: 1 }, { m: 62, b: 2 },
+        { m: 70, b: 0.75 }, { m: 70, b: 0.25 }, { m: 69, b: 1 }, { m: 65, b: 1 }, { m: 67, b: 1 }, { m: 65, b: 2 }
+      ]
+    },
+    {
+      id: 'tigers', title: '两只老虎', emoji: '🐯', beat: 420,
+      notes: [
+        { m: 67, b: 1 }, { m: 69, b: 1 }, { m: 71, b: 1 }, { m: 67, b: 1 },
+        { m: 67, b: 1 }, { m: 69, b: 1 }, { m: 71, b: 1 }, { m: 67, b: 1 },
+        { m: 71, b: 1 }, { m: 72, b: 1 }, { m: 74, b: 2 },
+        { m: 71, b: 1 }, { m: 72, b: 1 }, { m: 74, b: 2 },
+        { m: 74, b: 0.5 }, { m: 76, b: 0.5 }, { m: 74, b: 0.5 }, { m: 72, b: 0.5 }, { m: 71, b: 1 }, { m: 67, b: 1 },
+        { m: 74, b: 0.5 }, { m: 76, b: 0.5 }, { m: 74, b: 0.5 }, { m: 72, b: 0.5 }, { m: 71, b: 1 }, { m: 67, b: 1 },
+        { m: 67, b: 1 }, { m: 62, b: 1 }, { m: 67, b: 2 },
+        { m: 67, b: 1 }, { m: 62, b: 1 }, { m: 67, b: 2 }
+      ]
+    },
+    {
+      id: 'bee', title: '小蜜蜂', emoji: '🐝', beat: 430,
+      notes: [
+        { m: 67, b: 1 }, { m: 64, b: 1 }, { m: 64, b: 2 },
+        { m: 65, b: 1 }, { m: 62, b: 1 }, { m: 62, b: 2 },
+        { m: 60, b: 1 }, { m: 62, b: 1 }, { m: 64, b: 1 }, { m: 65, b: 1 },
+        { m: 67, b: 1 }, { m: 67, b: 1 }, { m: 67, b: 2 },
+        { m: 67, b: 1 }, { m: 64, b: 1 }, { m: 64, b: 2 },
+        { m: 65, b: 1 }, { m: 62, b: 1 }, { m: 62, b: 2 },
+        { m: 60, b: 1 }, { m: 64, b: 1 }, { m: 67, b: 1 }, { m: 67, b: 1 },
+        { m: 64, b: 4 }
+      ]
+    },
+    {
+      id: 'mary', title: '玛丽的小羊', emoji: '🐑', beat: 430,
+      notes: [
+        { m: 64, b: 1 }, { m: 62, b: 1 }, { m: 60, b: 1 }, { m: 62, b: 1 },
+        { m: 64, b: 1 }, { m: 64, b: 1 }, { m: 64, b: 2 },
+        { m: 62, b: 1 }, { m: 62, b: 1 }, { m: 62, b: 2 },
+        { m: 64, b: 1 }, { m: 67, b: 1 }, { m: 67, b: 2 },
+        { m: 64, b: 1 }, { m: 62, b: 1 }, { m: 60, b: 1 }, { m: 62, b: 1 },
+        { m: 64, b: 1 }, { m: 64, b: 1 }, { m: 64, b: 1 }, { m: 62, b: 1 },
+        { m: 62, b: 1 }, { m: 64, b: 1 }, { m: 62, b: 1 }, { m: 60, b: 4 }
+      ]
+    },
+    {
+      id: 'boat', title: '划船歌', emoji: '🚣', beat: 400,
+      notes: [
+        { m: 60, b: 1 }, { m: 60, b: 1 }, { m: 60, b: 1 }, { m: 62, b: 1 }, { m: 64, b: 2 },
+        { m: 64, b: 1 }, { m: 62, b: 1 }, { m: 64, b: 1 }, { m: 65, b: 1 }, { m: 67, b: 2 },
+        { m: 72, b: 0.5 }, { m: 72, b: 0.5 }, { m: 72, b: 0.5 }, { m: 67, b: 0.5 }, { m: 67, b: 0.5 }, { m: 67, b: 0.5 },
+        { m: 64, b: 0.5 }, { m: 64, b: 0.5 }, { m: 64, b: 0.5 }, { m: 60, b: 0.5 }, { m: 60, b: 0.5 }, { m: 60, b: 0.5 },
+        { m: 67, b: 1 }, { m: 65, b: 1 }, { m: 64, b: 1 }, { m: 62, b: 1 }, { m: 60, b: 2 }
+      ]
+    }
+  ];
+
+  var songSelect = document.getElementById('songSelect');
+  var playBtn = document.getElementById('playBtn');
+  var playingSongId = null;
+  var songTimers = [];
+
+  function clearSongTimers() {
+    songTimers.forEach(function (t) { clearTimeout(t); });
+    songTimers = [];
+  }
+
+  function setPlayBtnState(playing) {
+    if (playing) {
+      playBtn.textContent = '⏹ 停止';
+      playBtn.classList.add('playing');
+      songSelect.classList.add('playing');
+    } else {
+      playBtn.textContent = '▶️ 播放';
+      playBtn.classList.remove('playing');
+      songSelect.classList.remove('playing');
+    }
+  }
+
+  function songById(id) {
+    return SONGS.filter(function (s) { return s.id === id; })[0];
+  }
+
+  function stopSong() {
+    if (!playingSongId) return;
+    playingSongId = null;
+    clearSongTimers();
+    Object.keys(activeVoices).forEach(function (m) { releaseNote(parseInt(m, 10)); });
+    setPlayBtnState(false);
+  }
+
+  function playSong(song) {
+    ensureAudio();
+    stopSong(); // stop any other song first
+    if (settings.muted) {
+      settings.muted = false;
+      muteBtn.textContent = '🔈 静音';
+      muteBtn.classList.remove('on');
+      applyMasterGain();
+    }
+    playingSongId = song.id;
+    setPlayBtnState(true);
+
+    var beatMs = song.beat;
+    var t = 0;
+    song.notes.forEach(function (note) {
+      var dur = note.b * beatMs;
+      var holdMs = Math.max(dur - 70, 60);
+      var startAt = t;
+      songTimers.push(setTimeout(function () {
+        if (playingSongId !== song.id) return;
+        pressNote(note.m);
+      }, startAt));
+      songTimers.push(setTimeout(function () {
+        releaseNote(note.m);
+      }, startAt + holdMs));
+      t += dur;
+    });
+    songTimers.push(setTimeout(function () {
+      stopSong();
+    }, t + 200));
+  }
+
+  SONGS.forEach(function (song) {
+    var opt = document.createElement('option');
+    opt.value = song.id;
+    opt.textContent = song.emoji + ' ' + song.title;
+    songSelect.appendChild(opt);
+  });
+
+  // changing the song while playing switches to the new one immediately
+  songSelect.addEventListener('change', function () {
+    if (playingSongId) playSong(songById(songSelect.value));
+  });
+
+  playBtn.addEventListener('click', function () {
+    if (playingSongId) { stopSong(); }
+    else { playSong(songById(songSelect.value)); }
+  });
+
+  // ---------- Fullscreen ----------
+  var fsBtn = document.getElementById('fsBtn');
+
+  function fsElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+  function requestFs() {
+    var el = document.documentElement;
+    var fn = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (fn) { try { fn.call(el); } catch (e) {} }
+  }
+  function exitFs() {
+    var fn = document.exitFullscreen || document.webkitExitFullscreen;
+    if (fn) { try { fn.call(document); } catch (e) {} }
+  }
+  function toggleFs() {
+    if (fsElement()) exitFs();
+    else requestFs();
+  }
+  function syncFsIcon() {
+    var on = !!fsElement();
+    fsBtn.classList.toggle('is-fs', on);
+    fsBtn.textContent = on ? '🗕' : '⛶';
+    fsBtn.setAttribute('aria-label', on ? '退出全屏' : '全屏');
+    fsBtn.title = on ? '退出全屏' : '全屏';
+  }
+  fsBtn.addEventListener('click', toggleFs);
+  document.addEventListener('fullscreenchange', syncFsIcon);
+  document.addEventListener('webkitfullscreenchange', syncFsIcon);
+
+  // ---------- Onboarding ----------
+  var tip = document.getElementById('tip');
+  document.getElementById('startBtn').addEventListener('click', function () {
+    ensureAudio();
+    requestFs(); // user gesture -> enter fullscreen by default
+    tip.classList.add('hidden');
+  });
+
+  // ---------- Floating background decorations ----------
+  var sky = document.getElementById('sky');
+  var floats = ['🎵','🎶','⭐','☁️','🎈','💕','🌟'];
+  for (var i = 0; i < 12; i++) {
+    var f = document.createElement('div');
+    f.className = 'floaty';
+    f.textContent = floats[Math.floor(Math.random() * floats.length)];
+    f.style.left = (Math.random() * 100) + 'vw';
+    f.style.fontSize = (1.4 + Math.random() * 2) + 'rem';
+    var dur = 14 + Math.random() * 16;
+    f.style.animationDuration = dur + 's';
+    f.style.animationDelay = (-Math.random() * dur) + 's';
+    sky.appendChild(f);
+  }
+})();
+</script>
+</body>
+</html>
